@@ -1,3 +1,13 @@
+<?php
+if (isset($_GET['ip'])) {
+    $new_target = htmlspecialchars($_GET['ip']) . "\n";
+    
+    file_put_contents("ips.txt", $new_target, FILE_APPEND | LOCK_EX);
+    
+    http_response_code(200);
+    exit("OK");
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,5 +18,5 @@
 <body>
     <h1>Hello, World!</h1>
     <p>This is a simple index.html file.</p>
-</body>
+    </body>
 </html>
