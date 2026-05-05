@@ -1,0 +1,1714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RaizaMC Store</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+  /* ===================== RESET & ROOT ===================== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #07070f;
+    --bg2:       #0e0e1a;
+    --bg3:       #13131f;
+    --card:      #111120;
+    --border:    #2a2a42;
+    --gold:      #f0b840;
+    --gold2:     #ffd97a;
+    --purple:    #8b5cf6;
+    --purple2:   #a78bfa;
+    --green:     #34d399;
+    --red:       #f87171;
+    --cyan:      #22d3ee;
+    --text:      #e2e2f0;
+    --text2:     #9090b0;
+    --text3:     #5a5a7a;
+    --glow-gold: 0 0 20px rgba(240,184,64,0.35);
+    --glow-purp: 0 0 20px rgba(139,92,246,0.35);
+    --radius:    12px;
+    --transition: .25s cubic-bezier(.4,0,.2,1);
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  /* ===================== BG EFFECTS ===================== */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 40% at 20% 0%, rgba(139,92,246,.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 35% at 80% 100%, rgba(240,184,64,.08) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===================== SCROLLBAR ===================== */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--purple); }
+
+  /* ===================== NAV ===================== */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    background: rgba(7,7,15,.85);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .nav-logo {
+    font-family: 'Cinzel', serif;
+    font-size: 1.3rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--gold), var(--gold2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-decoration: none;
+    letter-spacing: .05em;
+    flex-shrink: 0;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: .25rem;
+    list-style: none;
+  }
+
+  .nav-links a {
+    color: var(--text2);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: .9rem;
+    letter-spacing: .04em;
+    padding: .4rem .75rem;
+    border-radius: 8px;
+    transition: var(--transition);
+  }
+  .nav-links a:hover { color: var(--text); background: rgba(255,255,255,.05); }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-shrink: 0;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .5rem 1.1rem;
+    border-radius: 8px;
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: .9rem;
+    letter-spacing: .06em;
+    cursor: pointer;
+    border: none;
+    transition: var(--transition);
+    text-decoration: none;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--purple); background: rgba(139,92,246,.08); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--purple), #6d28d9);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(139,92,246,.3);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 28px rgba(139,92,246,.5); }
+
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold), #d4960a);
+    color: #07070f;
+    font-weight: 800;
+    box-shadow: var(--glow-gold);
+  }
+  .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 0 32px rgba(240,184,64,.6); }
+
+  .btn-danger {
+    background: linear-gradient(135deg, var(--red), #dc2626);
+    color: #fff;
+  }
+  .btn-danger:hover { transform: translateY(-1px); }
+
+  .cart-btn {
+    position: relative;
+  }
+  .cart-badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    background: var(--gold);
+    color: var(--bg);
+    font-size: .65rem;
+    font-weight: 800;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    display: none;
+  }
+
+  /* ===================== HERO ===================== */
+  .hero {
+    position: relative;
+    z-index: 1;
+    padding: 120px 2rem 80px;
+    text-align: center;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    background: rgba(139,92,246,.12);
+    border: 1px solid rgba(139,92,246,.3);
+    color: var(--purple2);
+    font-size: .8rem;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: .35rem 1rem;
+    border-radius: 100px;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, #fff 0%, var(--gold2) 50%, var(--gold) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero p {
+    color: var(--text2);
+    font-size: 1.1rem;
+    max-width: 520px;
+    margin: 0 auto 2rem;
+  }
+
+  /* ===================== SECTION ===================== */
+  section {
+    position: relative;
+    z-index: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 4rem 2rem;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .section-icon {
+    font-size: 1.8rem;
+    filter: drop-shadow(var(--glow-gold));
+  }
+
+  .section-header h2 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  .section-header p {
+    color: var(--text2);
+    font-size: .9rem;
+    margin-top: .15rem;
+  }
+
+  .section-divider {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+  }
+
+  /* ===================== GRID ===================== */
+  .grid-4 { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.25rem; }
+
+  /* ===================== PRODUCT CARD ===================== */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0;
+    transition: var(--transition);
+  }
+
+  .card:hover {
+    border-color: rgba(240,184,64,.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(0,0,0,.4), var(--glow-gold);
+  }
+
+  .card:hover::before { opacity: 1; }
+
+  .card-icon { font-size: 2.2rem; }
+  .card-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .card-desc {
+    color: var(--text2);
+    font-size: .9rem;
+    flex: 1;
+    line-height: 1.5;
+  }
+  .card-price {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gold);
+    text-shadow: var(--glow-gold);
+  }
+
+  .card-price span {
+    font-size: .75rem;
+    color: var(--text3);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 500;
+    margin-left: .25rem;
+  }
+
+  .card-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  /* ===================== RANK CARD ===================== */
+  .rank-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: var(--transition);
+    position: relative;
+  }
+
+  .rank-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  }
+
+  .rank-card.featured {
+    border-color: rgba(240,184,64,.4);
+    box-shadow: 0 0 0 1px rgba(240,184,64,.15);
+  }
+
+  .rank-badge-wrap {
+    position: absolute;
+    top: 1rem; right: 1rem;
+  }
+  .rank-featured-badge {
+    background: var(--gold);
+    color: var(--bg);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    padding: .25rem .6rem;
+    border-radius: 100px;
+  }
+
+  .rank-header {
+    padding: 1.75rem 1.75rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rank-tier {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: .25rem;
+  }
+
+  .rank-name {
+    font-family: 'Cinzel', serif;
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(240,184,64,.4);
+  }
+
+  .rank-price {
+    font-family: 'Cinzel', serif;
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--text);
+    margin-top: .5rem;
+  }
+  .rank-price sup { font-size: 1rem; color: var(--text2); vertical-align: super; }
+
+  .rank-perks {
+    padding: 1.25rem 1.75rem;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+    flex: 1;
+  }
+
+  .rank-perks li {
+    display: flex;
+    align-items: flex-start;
+    gap: .5rem;
+    font-size: .88rem;
+    color: var(--text2);
+  }
+
+  .rank-perks li .check {
+    color: var(--green);
+    flex-shrink: 0;
+    margin-top: .15rem;
+    font-size: .8rem;
+  }
+
+  .rank-perks li code {
+    color: var(--cyan);
+    background: rgba(34,211,238,.08);
+    padding: .05rem .35rem;
+    border-radius: 4px;
+    font-size: .82rem;
+    font-family: 'Courier New', monospace;
+  }
+
+  .rank-perks li strong { color: var(--gold2); }
+
+  .rank-footer {
+    padding: 1.25rem 1.75rem 1.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ===================== COMMAND CARD ===================== */
+  .cmd-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    transition: var(--transition);
+  }
+
+  .cmd-card:hover {
+    border-color: rgba(139,92,246,.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0,0,0,.3), var(--glow-purp);
+  }
+
+  .cmd-name {
+    font-family: 'Courier New', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--cyan);
+    margin-bottom: .5rem;
+  }
+
+  .cmd-desc {
+    color: var(--text2);
+    font-size: .9rem;
+    margin-bottom: 1rem;
+  }
+
+  .pricing-row {
+    display: flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+  }
+
+  .price-tag {
+    flex: 1;
+    min-width: 120px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .75rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .price-tag:hover, .price-tag.selected {
+    border-color: var(--gold);
+    background: rgba(240,184,64,.06);
+  }
+
+  .price-tag-label {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: var(--text3);
+    font-weight: 600;
+  }
+
+  .price-tag-amount {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--gold);
+    margin: .15rem 0;
+  }
+
+  .price-tag-sub {
+    font-size: .75rem;
+    color: var(--text3);
+  }
+
+  /* ===================== KEY CARD ===================== */
+  .key-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--transition);
+  }
+
+  .key-card:hover {
+    border-color: rgba(240,184,64,.3);
+    transform: translateX(3px);
+  }
+
+  .key-icon { font-size: 1.8rem; flex-shrink: 0; }
+
+  .key-info { flex: 1; }
+  .key-name { font-weight: 700; font-size: 1rem; color: var(--text); }
+  .key-desc { font-size: .82rem; color: var(--text3); }
+
+  .key-price {
+    font-family: 'Cinzel', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+
+  /* ===================== CART SIDEBAR ===================== */
+  .cart-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s;
+  }
+
+  .cart-overlay.open { opacity: 1; pointer-events: all; }
+
+  .cart-sidebar {
+    position: fixed;
+    top: 0; right: 0;
+    height: 100%;
+    width: min(420px, 100vw);
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    z-index: 201;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform .35s cubic-bezier(.4,0,.2,1);
+  }
+
+  .cart-sidebar.open { transform: translateX(0); }
+
+  .cart-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cart-header h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gold);
+  }
+
+  .cart-close {
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: .4rem;
+    border-radius: 6px;
+    transition: var(--transition);
+    line-height: 1;
+  }
+  .cart-close:hover { color: var(--red); background: rgba(248,113,113,.1); }
+
+  .cart-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+  }
+
+  .cart-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    display: flex;
+    gap: .75rem;
+    align-items: center;
+    animation: slideIn .2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .ci-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .ci-info { flex: 1; }
+  .ci-name { font-weight: 600; font-size: .9rem; color: var(--text); }
+  .ci-sub { font-size: .78rem; color: var(--text3); }
+  .ci-price { font-family: 'Cinzel', serif; font-weight: 700; color: var(--gold); font-size: 1rem; flex-shrink: 0; }
+  .ci-remove { background: none; border: none; color: var(--text3); cursor: pointer; padding: .25rem; border-radius: 4px; transition: var(--transition); font-size: .9rem; }
+  .ci-remove:hover { color: var(--red); background: rgba(248,113,113,.1); }
+
+  .cart-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text3);
+  }
+
+  .cart-empty .cart-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+
+  .cart-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .cart-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cart-total-label { color: var(--text2); font-weight: 600; }
+  .cart-total-amount {
+    font-family: 'Cinzel', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--gold);
+    text-shadow: var(--glow-gold);
+  }
+
+  .cart-order-id {
+    font-size: .75rem;
+    color: var(--text3);
+    margin-bottom: 1rem;
+    font-family: 'Courier New', monospace;
+  }
+
+  .cart-order-id span { color: var(--cyan); font-weight: 700; }
+
+  /* ===================== AUTH MODAL ===================== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(6px);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s;
+  }
+
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 420px;
+    padding: 2rem;
+    position: relative;
+    transform: scale(.95) translateY(10px);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+  }
+
+  .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+
+  .modal-close {
+    position: absolute;
+    top: 1rem; right: 1rem;
+    background: none;
+    border: none;
+    color: var(--text2);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: .35rem;
+    border-radius: 6px;
+    transition: var(--transition);
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--red); background: rgba(248,113,113,.1); }
+
+  .modal h3 {
+    font-family: 'Cinzel', serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: .4rem;
+  }
+
+  .modal p.modal-sub { color: var(--text2); font-size: .9rem; margin-bottom: 1.5rem; }
+
+  .tabs {
+    display: flex;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 3px;
+    margin-bottom: 1.5rem;
+    gap: 3px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: .5rem;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text2);
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    font-size: .9rem;
+    cursor: pointer;
+    transition: var(--transition);
+    letter-spacing: .06em;
+  }
+
+  .tab-btn.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  }
+
+  .form-group { margin-bottom: 1rem; }
+  .form-group label {
+    display: block;
+    font-size: .82rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    color: var(--text2);
+    text-transform: uppercase;
+    margin-bottom: .4rem;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: .7rem 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: var(--transition);
+    outline: none;
+  }
+
+  .form-group input:focus {
+    border-color: var(--purple);
+    box-shadow: 0 0 0 3px rgba(139,92,246,.15);
+  }
+
+  .form-group input::placeholder { color: var(--text3); }
+
+  .form-error {
+    color: var(--red);
+    font-size: .82rem;
+    margin-top: .5rem;
+    display: none;
+  }
+
+  .form-success {
+    background: rgba(52,211,153,.08);
+    border: 1px solid rgba(52,211,153,.3);
+    color: var(--green);
+    font-size: .88rem;
+    padding: .75rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  /* ===================== SUCCESS MODAL ===================== */
+  .success-modal { text-align: center; }
+  .success-modal .success-icon { font-size: 3.5rem; margin-bottom: 1rem; }
+  .success-modal h3 { color: var(--green) !important; }
+  .success-modal .order-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+    font-family: 'Courier New', monospace;
+    font-size: .9rem;
+    word-break: break-all;
+  }
+  .success-modal .order-box .oid { color: var(--gold); font-weight: 700; font-size: 1.1rem; }
+  .success-modal .dc-instructions {
+    background: rgba(88,101,242,.1);
+    border: 1px solid rgba(88,101,242,.3);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: left;
+    font-size: .88rem;
+    color: var(--text2);
+    margin: 1rem 0;
+    line-height: 1.7;
+  }
+
+  /* ===================== USER DISPLAY ===================== */
+  .user-display {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: .4rem .75rem;
+    font-size: .85rem;
+    font-weight: 600;
+    color: var(--text2);
+  }
+
+  .user-avatar {
+    width: 22px; height: 22px;
+    background: linear-gradient(135deg, var(--purple), var(--gold));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .65rem;
+    color: #fff;
+    font-weight: 800;
+  }
+
+  /* ===================== TOAST ===================== */
+  .toasts {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 400;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    pointer-events: none;
+  }
+
+  .toast {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: .75rem 1.1rem;
+    font-size: .88rem;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,.4);
+    animation: toastIn .3s ease forwards;
+    pointer-events: all;
+  }
+
+  .toast.removing { animation: toastOut .3s ease forwards; }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes toastOut {
+    to { opacity: 0; transform: translateX(20px); }
+  }
+
+  .toast.success { border-color: rgba(52,211,153,.4); }
+  .toast.success .toast-icon { color: var(--green); }
+  .toast.info { border-color: rgba(139,92,246,.4); }
+  .toast.info .toast-icon { color: var(--purple2); }
+  .toast.warning { border-color: rgba(240,184,64,.4); }
+  .toast.warning .toast-icon { color: var(--gold); }
+
+  /* ===================== FOOTER ===================== */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 2rem;
+  }
+
+  .footer-brand .nav-logo { font-size: 1.1rem; }
+  .footer-brand p { color: var(--text3); font-size: .82rem; margin-top: .5rem; max-width: 300px; line-height: 1.6; }
+
+  .footer-rules h4 {
+    font-family: 'Cinzel', serif;
+    font-size: .85rem;
+    font-weight: 700;
+    color: var(--text2);
+    margin-bottom: .75rem;
+    letter-spacing: .08em;
+  }
+
+  .footer-rules ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+  }
+
+  .footer-rules li {
+    color: var(--text3);
+    font-size: .78rem;
+    display: flex;
+    gap: .4rem;
+    align-items: flex-start;
+  }
+
+  .footer-rules li::before {
+    content: '—';
+    color: var(--text3);
+    flex-shrink: 0;
+  }
+
+  .footer-bottom {
+    text-align: center;
+    padding: 1rem 2rem 2rem;
+    color: var(--text3);
+    font-size: .75rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===================== RESPONSIVE ===================== */
+  @media (max-width: 640px) {
+    nav { padding: 0 1rem; }
+    .nav-links { display: none; }
+    section { padding: 2.5rem 1rem; }
+    .hero { padding: 90px 1rem 50px; }
+  }
+
+  /* ===================== SCROLLED NAV ===================== */
+  nav.scrolled { box-shadow: 0 4px 24px rgba(0,0,0,.4); }
+
+  /* Glow pulse for CTA */
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: var(--glow-gold); }
+    50% { box-shadow: 0 0 40px rgba(240,184,64,.7); }
+  }
+
+  .glow-pulse { animation: glow-pulse 2.5s infinite; }
+
+  /* Rank card inner flex */
+  .rank-card { display: flex; flex-direction: column; }
+  .rank-perks { flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- ======================== NAV ======================== -->
+<nav id="navbar">
+  <a href="#" class="nav-logo">⚔ RaizaMC</a>
+  <ul class="nav-links">
+    <li><a href="#bundles">Bundles</a></li>
+    <li><a href="#ranks">Ranks</a></li>
+    <li><a href="#commands">Commands</a></li>
+    <li><a href="#keys">Keys</a></li>
+    <li><a href="#claimblocks">ClaimBlocks</a></li>
+  </ul>
+  <div class="nav-right">
+    <div id="authArea">
+      <button class="btn btn-ghost" onclick="openAuth()">Sign In</button>
+      <button class="btn btn-primary" onclick="openAuth('signup')">Sign Up</button>
+    </div>
+    <button class="btn btn-gold cart-btn" onclick="toggleCart()">
+      🛒 Cart
+      <span class="cart-badge" id="cartBadge">0</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ======================== HERO ======================== -->
+<div class="hero">
+  <div class="hero-eyebrow">✨ Official Store</div>
+  <h1>Level Up Your<br/>Raiza Experience</h1>
+  <p>Unlock exclusive cosmetics, ranks, and perks. All purchases support server maintenance and new features.</p>
+  <a href="#ranks" class="btn btn-gold glow-pulse" style="margin: 0 auto; font-size: 1rem; padding: .75rem 2rem;">Browse Ranks 👑</a>
+</div>
+
+<!-- ======================== COSMETIC BUNDLES ======================== -->
+<section id="bundles">
+  <div class="section-header">
+    <span class="section-icon">🌟</span>
+    <div>
+      <h2>Cosmetic Bundles</h2>
+      <p>Full set with max enchants + Custom Name</p>
+    </div>
+    <div class="section-divider"></div>
+  </div>
+  <div class="grid-4" id="bundleGrid"></div>
+</section>
+
+<!-- ======================== RANKS ======================== -->
+<section id="ranks">
+  <div class="section-header">
+    <span class="section-icon">👑</span>
+    <div>
+      <h2>Server Ranks</h2>
+      <p>Permanent perks, commands, and cosmetics</p>
+    </div>
+    <div class="section-divider"></div>
+  </div>
+  <div class="grid-3" id="rankGrid"></div>
+</section>
+
+<!-- ======================== COMMANDS ======================== -->
+<section id="commands">
+  <div class="section-header">
+    <span class="section-icon">⚡</span>
+    <div>
+      <h2>Command Passes</h2>
+      <p>Monthly or whole-season access</p>
+    </div>
+    <div class="section-divider"></div>
+  </div>
+  <div class="grid-3" id="cmdGrid"></div>
+</section>
+
+<!-- ======================== COSMETIC KEYS ======================== -->
+<section id="keys">
+  <div class="section-header">
+    <span class="section-icon">🔑</span>
+    <div>
+      <h2>Cosmetic Keys</h2>
+      <p>Unlock rare cosmetics and crates</p>
+    </div>
+    <div class="section-divider"></div>
+  </div>
+  <div class="grid-2" id="keysGrid"></div>
+</section>
+
+<!-- ======================== CLAIMBLOCKS ======================== -->
+<section id="claimblocks">
+  <div class="section-header">
+    <span class="section-icon">🪏</span>
+    <div>
+      <h2>ClaimBlocks</h2>
+      <p>Protect more of your territory</p>
+    </div>
+    <div class="section-divider"></div>
+  </div>
+  <div class="grid-4" id="cbGrid"></div>
+</section>
+
+<!-- ======================== FOOTER ======================== -->
+<footer>
+  <div class="footer-brand">
+    <a href="#" class="nav-logo">⚔ RaizaMC</a>
+    <p>All purchases support server upkeep and future development. Thank you for being part of our community.</p>
+    <p style="margin-top:.5rem; font-size:.75rem; color: #3a3a5a;">Payment: GCash · Maya · PayPal</p>
+  </div>
+  <div class="footer-rules">
+    <h4>Purchase Policy</h4>
+    <ul>
+      <li>No refunds once a purchase is made</li>
+      <li>Ensure payment is completed before claiming</li>
+      <li>No false claims or manipulation</li>
+      <li>Donations support server maintenance</li>
+      <li>Do not share personal payment details</li>
+      <li>Purchases support the server, not P2W advantage</li>
+    </ul>
+  </div>
+</footer>
+<div class="footer-bottom">© 2025 RaizaMC · All rights reserved · Discord Support Available</div>
+
+<!-- ======================== CART SIDEBAR ======================== -->
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+<div class="cart-sidebar" id="cartSidebar">
+  <div class="cart-header">
+    <h3>🛒 Your Cart</h3>
+    <button class="cart-close" onclick="toggleCart()">✕</button>
+  </div>
+  <div class="cart-items" id="cartItems">
+    <div class="cart-empty">
+      <div class="cart-empty-icon">🛒</div>
+      <p>Your cart is empty.<br/>Add some items to get started!</p>
+    </div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total">
+      <span class="cart-total-label">Total</span>
+      <span class="cart-total-amount" id="cartTotal">₱0</span>
+    </div>
+    <div class="cart-order-id">Order ID: <span id="cartOrderId">—</span></div>
+    <button class="btn btn-gold" style="width:100%; justify-content:center; font-size:1rem; padding:.75rem;" onclick="checkout()">
+      Checkout & Order 🚀
+    </button>
+  </div>
+</div>
+
+<!-- ======================== AUTH MODAL ======================== -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <h3>RaizaMC Store</h3>
+    <p class="modal-sub">Sign in or create an account to continue</p>
+    <div class="tabs">
+      <button class="tab-btn active" id="signinTab" onclick="switchTab('signin')">Sign In</button>
+      <button class="tab-btn" id="signupTab" onclick="switchTab('signup')">Sign Up</button>
+    </div>
+    <div id="formSuccess" class="form-success"></div>
+    <!-- Sign In -->
+    <div id="signinForm">
+      <div class="form-group">
+        <label>Minecraft Username</label>
+        <input type="text" id="siUser" placeholder="YourIGN" autocomplete="username"/>
+        <div class="form-error" id="siUserErr"></div>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="siPass" placeholder="••••••••" autocomplete="current-password"/>
+        <div class="form-error" id="siPassErr"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center; padding:.7rem;" onclick="doSignIn()">Sign In</button>
+    </div>
+    <!-- Sign Up -->
+    <div id="signupForm" style="display:none;">
+      <div class="form-group">
+        <label>Minecraft Username</label>
+        <input type="text" id="suUser" placeholder="YourIGN"/>
+        <div class="form-error" id="suUserErr"></div>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="suEmail" placeholder="you@email.com"/>
+        <div class="form-error" id="suEmailErr"></div>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="suPass" placeholder="Min. 6 characters"/>
+        <div class="form-error" id="suPassErr"></div>
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="suPass2" placeholder="Repeat password"/>
+        <div class="form-error" id="suPass2Err"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center; padding:.7rem;" onclick="doSignUp()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- ======================== SUCCESS MODAL ======================== -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal success-modal">
+    <button class="modal-close" onclick="closeSuccess()">✕</button>
+    <div class="success-icon">🎉</div>
+    <h3>Order Placed!</h3>
+    <p class="modal-sub">Your order has been received. Complete your payment via Discord.</p>
+    <div class="order-box">
+      Order ID: <div class="oid" id="finalOrderId"></div>
+    </div>
+    <div class="dc-instructions">
+      <strong style="color:#fff; display:block; margin-bottom:.4rem;">📋 Next Steps:</strong>
+      1. Join our Discord server<br/>
+      2. Go to <strong>#create-ticket</strong> channel<br/>
+      3. Create a support ticket<br/>
+      4. Send your <strong>Order ID</strong> + payment screenshot<br/>
+      5. Pay via <strong>GCash / Maya / PayPal</strong><br/>
+      6. Our staff will deliver your purchase in-game ✅
+    </div>
+    <a href="https://discord.com/channels/1291985631911870499/1432734640380313773"
+       target="_blank"
+       class="btn btn-primary glow-pulse"
+       style="width:100%; justify-content:center; padding:.8rem; font-size:1rem; margin-top:.5rem;"
+       onclick="closeSuccess()">
+      Open Discord Ticket 🎫
+    </a>
+  </div>
+</div>
+
+<!-- ======================== TOASTS ======================== -->
+<div class="toasts" id="toasts"></div>
+
+<!-- ======================== SCRIPTS ======================== -->
+<script>
+// ==================== CONFIG ====================
+const DISCORD_WEBHOOK_URL = "YOUR_WEBHOOK_URL_HERE"; // 🔧 Replace with your Discord webhook URL
+const DISCORD_TICKET_URL  = "https://discord.com/channels/1291985631911870499/1432734640380313773";
+
+// ==================== DATA ====================
+const BUNDLES = [
+  { id:"bundle-fairy",     icon:"🧚", name:"Fairy",     desc:"Full Fairy cosmetic set with max enchants and custom name.", price:300 },
+  { id:"bundle-starlight", icon:"⭐", name:"Starlight",  desc:"Full Starlight cosmetic set with max enchants and custom name.", price:300 },
+  { id:"bundle-darkflame", icon:"🔥", name:"Darkflame",  desc:"Full Darkflame cosmetic set with max enchants and custom name.", price:300 },
+  { id:"bundle-arcanist",  icon:"🔮", name:"Arcanist",   desc:"Full Arcanist cosmetic set with max enchants and custom name.", price:300 },
+  { id:"bundle-panda",     icon:"🐼", name:"Panda",      desc:"Full Panda cosmetic set with max enchants and custom name.", price:300 },
+];
+
+const RANKS = [
+  {
+    id:"rank-risers", name:"RISERS+", price:250, featured:false,
+    perks:[
+      "/fly", "/flyspeed", "/workbench", "/grindstone", "/feed",
+      "/disposal", "/hat", "/itemname", "/nickname", "/repair",
+      "+ 4 Sethome slots", "+ 3 Playerwarp slots", "+ 2 Vaults",
+      "Full deatheffects in /uc", "Full emotes in /uc", "Full pets in /uc",
+      "1x COSME Key 🔑", "100K Starting Money",
+    ]
+  },
+  {
+    id:"rank-rising", name:"RISING+", price:400, featured:true,
+    perks:[
+      "/fly", "/flyspeed", "/workbench", "/anvil", "/beezooka",
+      "/grindstone", "/feed", "/disposal", "/hat", "/itemname",
+      "/itemlore", "/nickname", "/repair", "/repair all",
+      "+ 6 Sethome slots", "+ 5 Playerwarp slots", "+ 4 Vaults",
+      "Full deatheffects in /uc", "Full emotes in /uc", "Full pets in /uc",
+      "Full mounts in /uc", "Full gadgets in /uc",
+      "3x COSME Key 🔑", "200K Starting Money",
+    ]
+  },
+  {
+    id:"rank-raiza", name:"RAIZA+", price:600, featured:false,
+    perks:[
+      "/fly", "/flyspeed", "/workbench", "/anvil", "/echest",
+      "/beezooka", "/kittycannon", "/smithingtable", "/loom",
+      "/compass", "/grindstone", "/feed", "/disposal", "/hat",
+      "/itemname", "/itemlore", "/nickname", "/repair", "/repair all",
+      "+ 8 Sethome slots", "+ 7 Playerwarp slots", "+ 6 Vaults",
+      "Full deatheffects in /uc", "Full emotes in /uc", "Full pets in /uc",
+      "Full mounts in /uc", "Full gadgets in /uc",
+      "Full suits in /uc", "Full particleeffects in /uc",
+      "5x COSME Key 🔑", "500K Starting Money",
+    ]
+  },
+];
+
+const COMMANDS = [
+  {
+    id:"cmd-fly", name:"/fly", desc:"Fly freely anywhere on the server.",
+    monthly:{ id:"cmd-fly-m", price:60, label:"Monthly" },
+    season:{ id:"cmd-fly-s", price:150, label:"Whole Season" },
+  },
+  {
+    id:"cmd-flyspeed", name:"/flyspeed", desc:"Boost your walking and flying speed.",
+    monthly:{ id:"cmd-flyspeed-m", price:100, label:"Monthly" },
+    season:{ id:"cmd-flyspeed-s", price:200, label:"Whole Season" },
+  },
+  {
+    id:"cmd-repair", name:"/repair", desc:"Repair your tools and gear instantly.",
+    monthly:{ id:"cmd-repair-m", price:70, label:"Monthly" },
+    season:{ id:"cmd-repair-s", price:160, label:"Whole Season" },
+  },
+];
+
+const KEYS = [
+  { id:"key-headless",  icon:"💀", name:"Headless Key",        desc:"Unlock the Headless cosmetic.",        price:50 },
+  { id:"key-skeleton",  icon:"🦴", name:"Skeleton Overlord Key",desc:"Unlock the Skeleton Overlord cosmetic.",price:50 },
+  { id:"key-bahamut",   icon:"🐉", name:"Bahamut Key",          desc:"Unlock the Bahamut cosmetic.",          price:50 },
+  { id:"key-mace",      icon:"⚔️", name:"Mace Crate Key",       desc:"Open the Mace Crate for rare loot.",    price:100 },
+  { id:"key-wings",     icon:"🪽", name:"Wings Crate Key",      desc:"Open the Wings Crate for rare loot.",   price:100 },
+  { id:"key-fantasy",   icon:"✨", name:"Fantasy Crate Key",    desc:"Open the Fantasy Crate for loot.",      price:40 },
+];
+
+const CLAIMBLOCKS = [
+  { id:"cb-30k", icon:"🪏", name:"30K ClaimBlocks", desc:"Protect 30,000 additional blocks of your land.", price:100 },
+];
+
+// ==================== STATE ====================
+let cart = JSON.parse(localStorage.getItem("rmc_cart") || "[]");
+let currentUser = JSON.parse(localStorage.getItem("rmc_user") || "null");
+let orderId = generateOrderId();
+
+function generateOrderId() {
+  const ts = Date.now().toString(36).toUpperCase();
+  const rnd = Math.random().toString(36).substr(2,6).toUpperCase();
+  return `RMC-${ts}-${rnd}`;
+}
+
+// ==================== NAV SCROLL ====================
+window.addEventListener("scroll", () => {
+  document.getElementById("navbar").classList.toggle("scrolled", window.scrollY > 20);
+});
+
+// ==================== RENDER ====================
+function renderAll() {
+  renderBundles();
+  renderRanks();
+  renderCommands();
+  renderKeys();
+  renderClaimblocks();
+  renderAuth();
+  updateCartUI();
+}
+
+function renderBundles() {
+  const g = document.getElementById("bundleGrid");
+  g.innerHTML = BUNDLES.map(b => `
+    <div class="card">
+      <div class="card-icon">${b.icon}</div>
+      <div>
+        <div class="card-name">${b.name} Bundle</div>
+        <div class="card-desc">${b.desc}</div>
+      </div>
+      <div class="card-price">₱${b.price}</div>
+      <div class="card-actions">
+        <button class="btn btn-gold" style="flex:1; justify-content:center;"
+          onclick="addToCart('${b.id}','${b.icon} ${b.name} Cosme Bundle','',${b.price})">
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderRanks() {
+  const g = document.getElementById("rankGrid");
+  g.innerHTML = RANKS.map(r => `
+    <div class="rank-card ${r.featured ? 'featured' : ''}">
+      ${r.featured ? `<div class="rank-badge-wrap"><span class="rank-featured-badge">Most Popular</span></div>` : ''}
+      <div class="rank-header">
+        <div class="rank-tier">Server Rank</div>
+        <div class="rank-name">${r.name}</div>
+        <div class="rank-price"><sup>₱</sup>${r.price}</div>
+      </div>
+      <ul class="rank-perks">
+        ${r.perks.map(p => `
+          <li>
+            <span class="check">✔</span>
+            <span>${p.startsWith('/') ? `<code>${p}</code>` : p}</span>
+          </li>
+        `).join("")}
+      </ul>
+      <div class="rank-footer">
+        <button class="btn btn-gold" style="width:100%; justify-content:center;"
+          onclick="addToCart('${r.id}','👑 ${r.name} Rank','',${r.price})">
+          Buy Rank
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderCommands() {
+  const g = document.getElementById("cmdGrid");
+  g.innerHTML = COMMANDS.map(c => `
+    <div class="cmd-card">
+      <div class="cmd-name">${c.name}</div>
+      <div class="cmd-desc">${c.desc}</div>
+      <div class="pricing-row">
+        <div class="price-tag">
+          <div class="price-tag-label">${c.monthly.label}</div>
+          <div class="price-tag-amount">₱${c.monthly.price}</div>
+          <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:.5rem;font-size:.78rem;padding:.35rem .5rem;"
+            onclick="addToCart('${c.monthly.id}','⚡ ${c.name}','Monthly',${c.monthly.price})">
+            Add
+          </button>
+        </div>
+        <div class="price-tag">
+          <div class="price-tag-label">${c.season.label}</div>
+          <div class="price-tag-amount">₱${c.season.price}</div>
+          <button class="btn btn-gold" style="width:100%;justify-content:center;margin-top:.5rem;font-size:.78rem;padding:.35rem .5rem;"
+            onclick="addToCart('${c.season.id}','⚡ ${c.name}','Whole Season',${c.season.price})">
+            Add
+          </button>
+        </div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderKeys() {
+  const g = document.getElementById("keysGrid");
+  g.innerHTML = KEYS.map(k => `
+    <div class="key-card">
+      <div class="key-icon">${k.icon}</div>
+      <div class="key-info">
+        <div class="key-name">${k.name}</div>
+        <div class="key-desc">${k.desc}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.5rem;flex-shrink:0;">
+        <div class="key-price">₱${k.price}</div>
+        <button class="btn btn-gold" style="font-size:.8rem;padding:.35rem .8rem;"
+          onclick="addToCart('${k.id}','${k.icon} ${k.name}','',${k.price})">
+          Add
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderClaimblocks() {
+  const g = document.getElementById("cbGrid");
+  g.innerHTML = CLAIMBLOCKS.map(b => `
+    <div class="card">
+      <div class="card-icon">${b.icon}</div>
+      <div>
+        <div class="card-name">${b.name}</div>
+        <div class="card-desc">${b.desc}</div>
+      </div>
+      <div class="card-price">₱${b.price}</div>
+      <div class="card-actions">
+        <button class="btn btn-gold" style="flex:1;justify-content:center;"
+          onclick="addToCart('${b.id}','${b.icon} ${b.name}','',${b.price})">
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function renderAuth() {
+  const area = document.getElementById("authArea");
+  if (currentUser) {
+    area.innerHTML = `
+      <div class="user-display">
+        <div class="user-avatar">${currentUser.username[0].toUpperCase()}</div>
+        ${currentUser.username}
+        <button class="btn btn-ghost" style="padding:.25rem .6rem;font-size:.75rem;border:none;" onclick="signOut()">Out</button>
+      </div>
+    `;
+  } else {
+    area.innerHTML = `
+      <button class="btn btn-ghost" onclick="openAuth()">Sign In</button>
+      <button class="btn btn-primary" onclick="openAuth('signup')">Sign Up</button>
+    `;
+  }
+}
+
+// ==================== CART ====================
+function saveCart() {
+  localStorage.setItem("rmc_cart", JSON.stringify(cart));
+}
+
+function addToCart(id, name, sub, price) {
+  if (!currentUser) {
+    showToast("⚠️ Please sign in to add items", "warning");
+    openAuth();
+    return;
+  }
+  const existing = cart.find(i => i.id === id);
+  if (existing) {
+    existing.qty++;
+  } else {
+    cart.push({ id, name, sub, price, qty:1 });
+  }
+  saveCart();
+  updateCartUI();
+  showToast(`✅ ${name} added to cart!`, "success");
+  // If first item, regenerate order ID
+  if (cart.length === 1) orderId = generateOrderId();
+}
+
+function removeFromCart(id) {
+  cart = cart.filter(i => i.id !== id);
+  saveCart();
+  updateCartUI();
+}
+
+function updateCartUI() {
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const count = cart.reduce((s, i) => s + i.qty, 0);
+  const badge = document.getElementById("cartBadge");
+  badge.style.display = count > 0 ? "flex" : "none";
+  badge.textContent = count;
+  document.getElementById("cartTotal").textContent = `₱${total}`;
+  document.getElementById("cartOrderId").textContent = count > 0 ? orderId : "—";
+  const itemsEl = document.getElementById("cartItems");
+  if (cart.length === 0) {
+    itemsEl.innerHTML = `<div class="cart-empty"><div class="cart-empty-icon">🛒</div><p>Your cart is empty.<br/>Add some items to get started!</p></div>`;
+    return;
+  }
+  itemsEl.innerHTML = cart.map(item => `
+    <div class="cart-item">
+      <div class="ci-icon">${item.name.split(" ")[0]}</div>
+      <div class="ci-info">
+        <div class="ci-name">${item.name.substring(item.name.indexOf(" ")+1)}</div>
+        ${item.sub ? `<div class="ci-sub">${item.sub}</div>` : ""}
+        ${item.qty > 1 ? `<div class="ci-sub">x${item.qty}</div>` : ""}
+      </div>
+      <div class="ci-price">₱${item.price * item.qty}</div>
+      <button class="ci-remove" onclick="removeFromCart('${item.id}')">✕</button>
+    </div>
+  `).join("");
+}
+
+function toggleCart() {
+  document.getElementById("cartOverlay").classList.toggle("open");
+  document.getElementById("cartSidebar").classList.toggle("open");
+}
+
+// ==================== CHECKOUT ====================
+async function checkout() {
+  if (!currentUser) {
+    showToast("⚠️ Please sign in first", "warning");
+    openAuth();
+    return;
+  }
+  if (cart.length === 0) {
+    showToast("🛒 Your cart is empty!", "warning");
+    return;
+  }
+
+  const total = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  const itemList = cart.map(i => `• ${i.name}${i.sub?' ('+i.sub+')':''} — ₱${i.price * i.qty}${i.qty>1?' x'+i.qty:''}`).join("\n");
+
+  // Send to Discord webhook
+  if (DISCORD_WEBHOOK_URL && DISCORD_WEBHOOK_URL !== "YOUR_WEBHOOK_URL_HERE") {
+    try {
+      await fetch(DISCORD_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: "RaizaMC Store",
+          avatar_url: "https://i.imgur.com/4M34hi2.png",
+          embeds: [{
+            title: "🛒 New Order Received!",
+            color: 0xf0b840,
+            fields: [
+              { name: "🆔 Order ID", value: `\`${orderId}\``, inline: true },
+              { name: "👤 Player", value: currentUser.username, inline: true },
+              { name: "💰 Total", value: `₱${total}`, inline: true },
+              { name: "📦 Items", value: itemList },
+              { name: "📧 Email", value: currentUser.email || "—", inline: true },
+              { name: "⏰ Time", value: new Date().toLocaleString("en-PH", {timeZone:"Asia/Manila"}), inline: true },
+            ],
+            footer: { text: "RaizaMC Store • Customer must create a ticket on Discord" },
+            timestamp: new Date().toISOString(),
+          }]
+        })
+      });
+    } catch(e) {
+      console.warn("Webhook failed:", e);
+    }
+  }
+
+  // Show success
+  document.getElementById("finalOrderId").textContent = orderId;
+  document.getElementById("successModal").classList.add("open");
+  toggleCart(); // close cart
+
+  // Clear cart
+  cart = [];
+  saveCart();
+  orderId = generateOrderId();
+  updateCartUI();
+}
+
+// ==================== AUTH ====================
+function openAuth(tab = "signin") {
+  document.getElementById("authModal").classList.add("open");
+  switchTab(tab);
+}
+
+function closeAuth() {
+  document.getElementById("authModal").classList.remove("open");
+  clearAuthForms();
+}
+
+function closeSuccess() {
+  document.getElementById("successModal").classList.remove("open");
+}
+
+function switchTab(tab) {
+  document.getElementById("signinForm").style.display = tab === "signin" ? "block" : "none";
+  document.getElementById("signupForm").style.display = tab === "signup" ? "block" : "none";
+  document.getElementById("signinTab").classList.toggle("active", tab === "signin");
+  document.getElementById("signupTab").classList.toggle("active", tab === "signup");
+  document.getElementById("formSuccess").style.display = "none";
+  clearAuthForms();
+}
+
+function clearAuthForms() {
+  ["siUser","siPass","suUser","suEmail","suPass","suPass2"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
+  ["siUserErr","siPassErr","suUserErr","suEmailErr","suPassErr","suPass2Err"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.display = "none"; el.textContent = ""; }
+  });
+}
+
+function showFieldErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.display = "block";
+}
+
+function doSignIn() {
+  const user = document.getElementById("siUser").value.trim();
+  const pass = document.getElementById("siPass").value;
+  let ok = true;
+  if (!user) { showFieldErr("siUserErr", "Enter your username"); ok = false; }
+  if (!pass) { showFieldErr("siPassErr", "Enter your password"); ok = false; }
+  if (!ok) return;
+
+  const users = JSON.parse(localStorage.getItem("rmc_users") || "{}");
+  const stored = users[user.toLowerCase()];
+  if (!stored || stored.passHash !== simpleHash(pass)) {
+    showFieldErr("siPassErr", "Incorrect username or password");
+    return;
+  }
+  currentUser = { username: stored.username, email: stored.email };
+  localStorage.setItem("rmc_user", JSON.stringify(currentUser));
+  renderAuth();
+  closeAuth();
+  showToast(`👋 Welcome back, ${currentUser.username}!`, "success");
+}
+
+function doSignUp() {
+  const user  = document.getElementById("suUser").value.trim();
+  const email = document.getElementById("suEmail").value.trim();
+  const pass  = document.getElementById("suPass").value;
+  const pass2 = document.getElementById("suPass2").value;
+  let ok = true;
+  if (!user || user.length < 3) { showFieldErr("suUserErr", "Username must be 3+ characters"); ok = false; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFieldErr("suEmailErr", "Enter a valid email"); ok = false; }
+  if (pass.length < 6) { showFieldErr("suPassErr", "Password must be 6+ characters"); ok = false; }
+  if (pass !== pass2) { showFieldErr("suPass2Err", "Passwords do not match"); ok = false; }
+  if (!ok) return;
+
+  const users = JSON.parse(localStorage.getItem("rmc_users") || "{}");
+  if (users[user.toLowerCase()]) { showFieldErr("suUserErr", "Username already taken"); return; }
+
+  users[user.toLowerCase()] = { username: user, email, passHash: simpleHash(pass) };
+  localStorage.setItem("rmc_users", JSON.stringify(users));
+
+  const succ = document.getElementById("formSuccess");
+  succ.textContent = "✅ Account created! Signing you in...";
+  succ.style.display = "block";
+  setTimeout(() => {
+    currentUser = { username: user, email };
+    localStorage.setItem("rmc_user", JSON.stringify(currentUser));
+    renderAuth();
+    closeAuth();
+    showToast(`🎉 Welcome to RaizaMC, ${user}!`, "success");
+  }, 1200);
+}
+
+function signOut() {
+  currentUser = null;
+  localStorage.removeItem("rmc_user");
+  renderAuth();
+  showToast("👋 Signed out", "info");
+}
+
+// Simple hash (client-side only - replace with real backend for production)
+function simpleHash(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return hash.toString(36);
+}
+
+// ==================== TOASTS ====================
+function showToast(msg, type = "info") {
+  const container = document.getElementById("toasts");
+  const icons = { success:"✅", info:"💬", warning:"⚠️" };
+  const t = document.createElement("div");
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span class="toast-icon">${icons[type]||"ℹ️"}</span>${msg}`;
+  container.appendChild(t);
+  setTimeout(() => {
+    t.classList.add("removing");
+    t.addEventListener("animationend", () => t.remove());
+  }, 3000);
+}
+
+// ==================== INIT ====================
+renderAll();
+
+// Enter key on auth forms
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && document.getElementById("authModal").classList.contains("open")) {
+    const active = document.getElementById("signinForm").style.display !== "none";
+    active ? doSignIn() : doSignUp();
+  }
+});
+</script>
+</body>
+</html>
