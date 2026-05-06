@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,14 +63,24 @@
 </div>
 
 <script>
-    const API_URL = "https://6hka8t2vsc.execute-api.us-east-1.amazonaws.com"; // PASTE YOUR URL HERE
+    const API_URL = "https://6hka8t2vsc.execute-api.us-east-1.amazonaws.com";
     let adminAuth = { user: '', pass: '' };
+
+    // Security: Escaping function to prevent XSS
+    function esc(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
 
     async function doLogin() {
         const u = document.getElementById('adm-u').value;
         const p = document.getElementById('adm-p').value;
         
-        // Attempt to list orders immediately to check if creds are valid
         const res = await apiCall({ 
             action: 'listOrders', 
             adminUsername: u, 
@@ -97,8 +106,13 @@
     }
 
     async function apiCall(data) {
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
-        return await res.json();
+        try {
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
+            return await res.json();
+        } catch (e) {
+            console.error("API Error:", e);
+            return { success: false, items: [] };
+        }
     }
 
     async function loadOrders() {
@@ -107,22 +121,24 @@
             adminUsername: adminAuth.user, 
             adminPassword: adminAuth.pass 
         });
+        
         const list = document.getElementById('order-rows');
-        // FIX: Access res.items, not res.orders
+        if (!res.items) return;
+
         list.innerHTML = res.items.map(o => `
             <tr>
-                <td>${o.orderId}</td>
-                <td>${o.username}</td>
-                <td>₱${o.total}</td>
+                <td>${esc(o.orderId)}</td>
+                <td>${esc(o.username)}</td>
+                <td>₱${esc(o.total)}</td>
                 <td>
-                    <select id="st-${o.orderId}">
+                    <select id="st-${esc(o.orderId)}">
                         <option value="pending" ${o.status==='pending'?'selected':''}>PENDING</option>
                         <option value="completed" ${o.status==='completed'?'selected':''}>COMPLETED</option>
                     </select>
                 </td>
                 <td>
-                    <button class="btn-green" onclick="updateOrder('${o.orderId}')">Save</button>
-                    <button class="btn-red" onclick="deleteOrder('${o.orderId}')">Delete</button>
+                    <button class="btn-green" onclick="updateOrder('${esc(o.orderId)}')">Save</button>
+                    <button class="btn-red" onclick="deleteOrder('${esc(o.orderId)}')">Delete</button>
                 </td>
             </tr>
         `).join('');
@@ -134,34 +150,56 @@
             adminUsername: adminAuth.user, 
             adminPassword: adminAuth.pass 
         });
+        
         const list = document.getElementById('user-rows');
-        // FIX: Access res.items, not res.users
+        if (!res.items) return;
+
         list.innerHTML = res.items.map(u => `
             <tr>
-                <td>${u.userId}</td>
-                <td>${u.email}</td>
-                <td><input type="text" id="newpw-${u.userId}" placeholder="New Pass"></td>
-                <td><button class="btn-green" onclick="changePass('${u.userId}')">Update</button></td>
+                <td>${esc(u.userId)}</td>
+                <td>${esc(u.email)}</td>
+                <td><input type="text" id="newpw-${esc(u.userId)}" placeholder="New Pass"></td>
+                <td><button class="btn-green" onclick="changePass('${esc(u.userId)}')">Update</button></td>
             </tr>
         `).join('');
     }
 
     async function updateOrder(id) {
         const status = document.getElementById(`st-${id}`).value;
-        await apiCall({ action: 'admin', subAction: 'update', orderId: id, updateFields: {status}, adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
+        await apiCall({ 
+            action: 'admin', 
+            subAction: 'update', 
+            orderId: id, 
+            updateFields: {status}, 
+            adminUsername: adminAuth.user, 
+            adminPassword: adminAuth.pass 
+        });
         alert('Status updated!');
     }
 
     async function deleteOrder(id) {
         if(!confirm('Delete order?')) return;
-        await apiCall({ action: 'admin', subAction: 'delete', orderId: id, adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
+        await apiCall({ 
+            action: 'admin', 
+            subAction: 'delete', 
+            orderId: id, 
+            adminUsername: adminAuth.user, 
+            adminPassword: adminAuth.pass 
+        });
         loadOrders();
     }
 
     async function changePass(uid) {
         const newPw = document.getElementById(`newpw-${uid}`).value;
         if(!newPw) return alert('Enter a password!');
-        await apiCall({ action: 'admin', subAction: 'changeUserPass', targetUserId: uid, newPassword: newPw, adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
+        await apiCall({ 
+            action: 'admin', 
+            subAction: 'changeUserPass', 
+            targetUserId: uid, 
+            newPassword: newPw, 
+            adminUsername: adminAuth.user, 
+            adminPassword: adminAuth.pass 
+        });
         alert('User password changed!');
         document.getElementById(`newpw-${uid}`).value = '';
     }
