@@ -1,34 +1,31 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RiseStore | Admin</title>
+    <title>RiseStore | Admin Panel</title>
     <style>
-        :root { --primary: #7289da; --danger: #f04747; --success: #43b581; --bg: #2f3136; --card: #36393f; }
-        body { font-family: 'Inter', sans-serif; background: var(--bg); color: #dcddde; margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: auto; }
-        .card { background: var(--card); padding: 25px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0,0,0,0.4); }
+        :root { --primary: #5865F2; --danger: #ED4245; --success: #3BA55D; --bg: #2F3136; --card: #36393F; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: #DCDDDE; margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: auto; }
+        .card { background: var(--card); padding: 25px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         
         /* Tabs */
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 10px; }
-        .tab { padding: 10px 20px; cursor: pointer; border-radius: 5px; background: #202225; transition: 0.2s; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; background: #202225; cursor: pointer; border-radius: 5px; }
         .tab.active { background: var(--primary); color: white; }
 
-        /* Tables & Inputs */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #2f3136; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 14px; text-align: left; border-bottom: 1px solid #444; }
-        th { background: #202225; color: #8e9297; text-transform: uppercase; font-size: 12px; }
-        input, select { background: #202225; color: white; border: 1px solid #444; padding: 8px; border-radius: 4px; }
+        /* Form Elements */
+        input, select { background: #202225; color: white; border: 1px solid #444; padding: 10px; border-radius: 4px; width: 100%; box-sizing: border-box; margin-bottom: 10px; }
+        button { cursor: pointer; border: none; border-radius: 4px; padding: 10px 20px; font-weight: bold; transition: 0.2s; }
+        button:hover { opacity: 0.8; }
+        .btn-green { background: var(--success); color: white; }
+        .btn-red { background: var(--danger); color: white; }
         
-        /* Buttons */
-        button { cursor: pointer; border: none; border-radius: 4px; padding: 8px 16px; font-weight: 600; transition: 0.2s; }
-        button:hover { opacity: 0.8; transform: translateY(-1px); }
-        .btn-save { background: var(--success); color: white; margin-right: 5px; }
-        .btn-del { background: var(--danger); color: white; }
-        .btn-login { background: var(--primary); color: white; width: 100%; margin-top: 10px; }
-        
-        #login-box { max-width: 400px; margin: 100px auto; }
+        /* Table Style */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { text-align: left; background: #202225; padding: 12px; font-size: 0.85rem; color: #8E9297; }
+        td { padding: 12px; border-bottom: 1px solid #444; }
         .hidden { display: none; }
     </style>
 </head>
@@ -36,106 +33,112 @@
 
 <div class="container">
     <div id="login-box" class="card">
-        <h2 style="text-align:center">RiseStore Admin</h2>
-        <input type="text" id="adm-user" placeholder="Admin Username" style="width:95%; margin-bottom:10px">
-        <input type="password" id="adm-pass" placeholder="Admin Password" style="width:95%">
-        <button class="btn-login" onclick="login()">Enter Dashboard</button>
+        <h2 style="text-align: center;">RiseStore Admin</h2>
+        <input type="text" id="adm-u" placeholder="Admin Username">
+        <input type="password" id="adm-p" placeholder="Admin Password">
+        <button onclick="doLogin()" style="width:100%; background: var(--primary); color:white;">LOGIN</button>
     </div>
 
-    <div id="dashboard" class="hidden">
+    <div id="main-ui" class="hidden">
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('orders')">Orders</div>
-            <div class="tab" onclick="switchTab('users')">User Management</div>
+            <div id="tab-orders" class="tab active" onclick="showTab('orders')">Manage Orders</div>
+            <div id="tab-users" class="tab" onclick="showTab('users')">User Passwords</div>
         </div>
 
-        <div id="orders-sec" class="card">
-            <h3>Recent Orders</h3>
+        <div id="sec-orders" class="card">
+            <h3>Order List</h3>
             <table>
-                <thead><tr><th>ID</th><th>Player</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
-                <tbody id="order-list"></tbody>
+                <thead><tr><th>ID</th><th>User</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody id="order-rows"></tbody>
             </table>
         </div>
 
-        <div id="users-sec" class="card hidden">
+        <div id="sec-users" class="card hidden">
             <h3>Registered Players</h3>
             <table>
-                <thead><tr><th>Username</th><th>Email</th><th>New Password</th><th>Actions</th></tr></thead>
-                <tbody id="user-list"></tbody>
+                <thead><tr><th>Username</th><th>Email</th><th>New Password</th><th>Action</th></tr></thead>
+                <tbody id="user-rows"></tbody>
             </table>
         </div>
     </div>
 </div>
 
 <script>
-    const API_URL = "YOUR_LAMBDA_URL"; 
-    let auth = { user: '', pass: '' };
+    const API_URL = "YOUR_API_GATEWAY_URL"; // PASTE YOUR URL HERE
+    let adminAuth = { user: '', pass: '' };
 
-    function login() {
-        auth.user = document.getElementById('adm-user').value;
-        auth.pass = document.getElementById('adm-pass').value;
+    function doLogin() {
+        adminAuth.user = document.getElementById('adm-u').value;
+        adminAuth.pass = document.getElementById('adm-p').value;
         document.getElementById('login-box').classList.add('hidden');
-        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('main-ui').classList.remove('hidden');
         loadOrders();
     }
 
-    function switchTab(tab) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
-        document.getElementById('orders-sec').classList.toggle('hidden', tab !== 'orders');
-        document.getElementById('users-sec').classList.toggle('hidden', tab !== 'users');
-        tab === 'orders' ? loadOrders() : loadUsers();
+    function showTab(type) {
+        document.getElementById('sec-orders').classList.toggle('hidden', type !== 'orders');
+        document.getElementById('sec-users').classList.toggle('hidden', type !== 'users');
+        document.getElementById('tab-orders').classList.toggle('active', type === 'orders');
+        document.getElementById('tab-users').classList.toggle('active', type === 'users');
+        type === 'orders' ? loadOrders() : loadUsers();
     }
 
-    async function api(payload) {
-        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
+    async function apiCall(data) {
+        const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(data) });
         return await res.json();
     }
 
     async function loadOrders() {
-        const data = await api({ action: 'listOrders' });
-        const list = document.getElementById('order-list');
-        list.innerHTML = data.items.map(o => `
+        const res = await apiCall({ action: 'listOrders' });
+        const list = document.getElementById('order-rows');
+        list.innerHTML = res.orders.map(o => `
             <tr>
                 <td>${o.orderId}</td><td>${o.username}</td><td>₱${o.total}</td>
                 <td>
                     <select id="st-${o.orderId}">
-                        <option value="pending" ${o.status=='pending'?'selected':''}>PENDING</option>
-                        <option value="completed" ${o.status=='completed'?'selected':''}>COMPLETED</option>
-                        <option value="cancelled" ${o.status=='cancelled'?'selected':''}>CANCELLED</option>
+                        <option value="pending" ${o.status==='pending'?'selected':''}>PENDING</option>
+                        <option value="completed" ${o.status==='completed'?'selected':''}>COMPLETED</option>
+                        <option value="cancelled" ${o.status==='cancelled'?'selected':''}>CANCELLED</option>
                     </select>
                 </td>
                 <td>
-                    <button class="btn-save" onclick="updateOrder('${o.orderId}')">Update</button>
-                    <button class="btn-del" onclick="deleteOrder('${o.orderId}')">Delete</button>
+                    <button class="btn-green" onclick="updateOrder('${o.orderId}')">Save</button>
+                    <button class="btn-red" onclick="deleteOrder('${o.orderId}')">Delete</button>
                 </td>
             </tr>
         `).join('');
     }
 
     async function loadUsers() {
-        const data = await api({ action: 'listUsers' });
-        const list = document.getElementById('user-list');
-        list.innerHTML = data.items.map(u => `
+        const res = await apiCall({ action: 'listUsers' });
+        const list = document.getElementById('user-rows');
+        list.innerHTML = res.users.map(u => `
             <tr>
                 <td>${u.userId}</td><td>${u.email}</td>
-                <td><input type="text" id="pw-${u.userId}" placeholder="New Pass"></td>
-                <td><button class="btn-save" onclick="changePass('${u.userId}')">Change Pass</button></td>
+                <td><input type="text" id="newpw-${u.userId}" placeholder="Set New Pass" style="margin:0"></td>
+                <td><button class="btn-green" onclick="changePass('${u.userId}')">Update</button></td>
             </tr>
         `).join('');
     }
 
     async function updateOrder(id) {
         const status = document.getElementById(`st-${id}`).value;
-        await api({ action: 'admin', subAction: 'updateOrder', orderId: id, updateFields: {status}, adminUsername: auth.user, adminPassword: auth.pass });
-        alert('Order Updated!');
+        await apiCall({ action: 'admin', subAction: 'update', orderId: id, updateFields: {status}, adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
+        alert('Status updated!');
     }
 
-    async function changePass(target) {
-        const newPw = document.getElementById(`pw-${target}`).value;
+    async function deleteOrder(id) {
+        if(!confirm('Delete order?')) return;
+        await apiCall({ action: 'admin', subAction: 'delete', orderId: id, adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
+        loadOrders();
+    }
+
+    async function changePass(uid) {
+        const newPw = document.getElementById(`newpw-${uid}`).value;
         if(!newPw) return alert('Enter a password!');
-        await api({ action: 'admin', subAction: 'updateUser', targetUser: target, newPassword: newPw, adminUsername: auth.user, adminPassword: auth.pass });
-        alert('User Password Changed!');
-        loadUsers();
+        await apiCall({ action: 'admin', subAction: 'changeUserPass', targetUserId: uid, newPassword: newPw, adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
+        alert('User password changed!');
+        document.getElementById(`newpw-${uid}`).value = '';
     }
 </script>
 </body>
