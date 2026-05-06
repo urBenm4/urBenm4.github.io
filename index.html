@@ -1061,9 +1061,12 @@ function closeOverlay(id){
 function clearErrors(){
   $$(".error").forEach(e => { e.textContent=""; e.style.display="none"; });
 }
-function showError(id, msg){
+function showError(id, msg) {
   const el = document.getElementById(id);
-  if (!el) return;
+  if (!el) {
+    console.warn(`Element with id ${id} not found.`);
+    return; 
+  }
   el.textContent = msg;
   el.style.display = "block";
 }
@@ -1087,7 +1090,7 @@ function renderAuthButtons() {
   // Profile chip
   const chip = $("#profileChip");
   if (isLoggedIn) {
-    const uname = state.user.username || "";
+    const uname = state.user.username || "Guest";
     $("#profileAvatar").src = `https://cravatar.eu/helmavatar/${encodeURIComponent(uname)}/250.png`;
     $("#profileName").textContent = uname;
     chip.style.display = "inline-flex";
@@ -1300,26 +1303,49 @@ function renderCart(){
   `).join("");
 }
 
-async function api(path, body){
-  // Convert path to action (e.g., "/auth/signup" becomes "createUser")
-  let action = "health";
-  if (path === "/auth/signup") action = "createUser";
-  if (path === "/auth/login") action = "getUser"; // Use getUser for login
-  if (path === "/order") action = "order";
+async function api(path, body) {
+  // 1. Map paths to actions
+  const actionMap = {
+    "/auth/signup": "createUser",
+    "/auth/login": "getUser",
+    "/order": "order"
+  };
 
-  const res = await fetch(`${API_BASE}`, { // Remove ${path} from URL if using one endpoint
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": state.token ? `Bearer ${state.token}` : ""
-    },
-    // We inject the "action" key here so the Lambda knows what to do
-    body: JSON.stringify({ ...body, action }) 
-  });
-  
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.error || "Request failed");
-  return json;
+  // Fallback to "health" only if the path isn't recognized
+  const action = actionMap[path] || "health";
+
+  try {
+    const res = await fetch(`${API_BASE}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": state.token ? `Bearer ${state.token}` : ""
+      },
+      body: JSON.stringify({ ...body, action })
+    });
+
+    // 2. Check if the response is actually JSON and readable
+    // If the server crashes, res.json() might fail or return HTML
+    const json = await res.json().catch(() => null);
+
+    // 3. Handle non-200 status codes
+    if (!res.ok) {
+      // Provide a clear error message from the server or a default fallback
+      const message = json?.error || json?.message || `Error: ${res.status}`;
+      throw new Error(message);
+    }
+
+    // 4. Handle empty/invalid JSON responses
+    if (!json) {
+      throw new Error("The server sent an invalid response.");
+    }
+
+    return json;
+  } catch (err) {
+    // 5. Catch network errors (like being offline)
+    console.error("API Call Failed:", err);
+    throw err; // Re-throw so your UI (like a toast) can catch it
+  }
 }
 
 async function signIn(){
@@ -1430,6 +1456,7 @@ async function checkout(){
     showToast("Order sent.", "success");
   }catch(err){
     showToast(err.message, "warn");
+    console.error("Checkout Error:", err);
   }
 }
 
