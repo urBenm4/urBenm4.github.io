@@ -18,6 +18,7 @@
 <meta property="twitter:title" content="RiseSMP Store | Exclusive In-Game Upgrades">
 <meta property="twitter:description" content="Instant delivery. Secure payments. Unstoppable perks. Get your gear at the official RiseSMP store today.">
 <meta property="twitter:image" content="https://i.imgur.com/UqrBeg2.png">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src *; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;">
 
 <meta name="theme-color" content="#A61F2B">
 
@@ -1344,9 +1345,9 @@ function changeQty(type, id, delta){
   renderCart();
 }
 
-function renderCart(){
-  const count = state.cart.reduce((a,b) => a + b.qty, 0);
-  const total = state.cart.reduce((a,b) => a + b.price * b.qty, 0);
+function renderCart() {
+  const count = state.cart.reduce((a, b) => a + b.qty, 0);
+  const total = state.cart.reduce((a, b) => a + b.price * b.qty, 0);
 
   const badge = $("#cartBadge");
   badge.textContent = count;
@@ -1354,16 +1355,43 @@ function renderCart(){
   $("#cartTotal").textContent = money(total);
 
   const root = $("#cartItems");
-  if (!state.cart.length){
-    root.innerHTML = `
-      <div class="cart-empty">
-        <span class="emoji">🛒</span>
-        Your cart is empty.<br>
-        Add a rank, bundle, key, or command pass to begin.
-      </div>
-    `;
+  root.innerHTML = ""; // Clear existing content safely
+
+  if (!state.cart.length) {
+    // SECURE: Create elements manually instead of using innerHTML
+    const emptyContainer = document.createElement("div");
+    emptyContainer.className = "cart-empty";
+
+    const emoji = document.createElement("span");
+    emoji.className = "emoji";
+    emoji.textContent = "🛒";
+
+    const text = document.createElement("div");
+    text.textContent = "Your cart is empty.";
+    
+    const subtext = document.createElement("small");
+    subtext.style.display = "block";
+    subtext.textContent = "Add a rank, bundle, key, or command pass to begin.";
+
+    emptyContainer.append(emoji, text, subtext);
+    root.appendChild(emptyContainer);
     return;
   }
+
+  // Example of how to securely render items if you were to continue the function:
+  state.cart.forEach(item => {
+    const itemRow = document.createElement("div");
+    itemRow.className = "cart-item";
+
+    const nameLabel = document.createElement("div");
+    nameLabel.className = "ci-name";
+    // SECURE: Using textContent prevents XSS from item.name
+    nameLabel.textContent = item.name; 
+
+    itemRow.appendChild(nameLabel);
+    root.appendChild(itemRow);
+  });
+}
 
   root.innerHTML = state.cart.map(item => `
     <div class="cart-item">
@@ -1510,7 +1538,7 @@ async function checkout(){
   }
 
   const total = state.cart.reduce((a, b) => a + b.price * b.qty, 0);
-  const itemsArray = state.cart.map(i => `${i.name}${i.sub ? ` (${i.sub})` : ""} x${i.qty}`);
+  const itemsArray = state.cart.map(i => i.name); // Send ONLY the names, e.g., ["Fairy Bundle", "30K ClaimBlocks"]
   const itemList = state.cart.map(i => `• ${i.name}${i.sub ? ` (${i.sub})` : ""} — ${money(i.price * i.qty)}`).join("\n");
 
   try{
@@ -1518,7 +1546,7 @@ async function checkout(){
       orderId: state.orderId,
       username: state.user.username,
       email: state.user.email || "—",
-      total,
+   //   total,
       items: itemsArray,
       itemList,
       clientStart: state.pageStart,
