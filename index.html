@@ -1355,50 +1355,25 @@ function renderCart() {
   $("#cartTotal").textContent = money(total);
 
   const root = $("#cartItems");
-  root.innerHTML = ""; // Clear existing content safely
-
+  
   if (!state.cart.length) {
-    // SECURE: Create elements manually instead of using innerHTML
-    const emptyContainer = document.createElement("div");
-    emptyContainer.className = "cart-empty";
-
-    const emoji = document.createElement("span");
-    emoji.className = "emoji";
-    emoji.textContent = "🛒";
-
-    const text = document.createElement("div");
-    text.textContent = "Your cart is empty.";
-    
-    const subtext = document.createElement("small");
-    subtext.style.display = "block";
-    subtext.textContent = "Add a rank, bundle, key, or command pass to begin.";
-
-    emptyContainer.append(emoji, text, subtext);
-    root.appendChild(emptyContainer);
+    root.innerHTML = `
+      <div class="cart-empty">
+        <span class="emoji">🛒</span><br>
+        Your cart is empty.<br>
+        <small>Add a rank, bundle, key, or command pass to begin.</small>
+      </div>
+    `;
     return;
   }
 
-  // Example of how to securely render items if you were to continue the function:
-  state.cart.forEach(item => {
-    const itemRow = document.createElement("div");
-    itemRow.className = "cart-item";
-
-    const nameLabel = document.createElement("div");
-    nameLabel.className = "ci-name";
-    // SECURE: Using textContent prevents XSS from item.name
-    nameLabel.textContent = item.name; 
-
-    itemRow.appendChild(nameLabel);
-    root.appendChild(itemRow);
-  });
-}
-
+  // Set the skeleton structure first
   root.innerHTML = state.cart.map(item => `
     <div class="cart-item">
-      <img class="${item.imageClass || ""}" src="${item.image}" alt="${escapeHtml(item.name)}" loading="lazy" decoding="async">
+      <img class="${item.imageClass || ""}" src="${item.image}" alt="" loading="lazy" decoding="async">
       <div>
-        <div class="ci-name">${escapeHtml(item.name)}</div>
-        <div class="ci-sub">${escapeHtml(item.sub || item.badge || "")}</div>
+        <div class="ci-name"></div>
+        <div class="ci-sub"></div>
         <div class="qty-row" style="margin-top:8px">
           <button class="qty-btn" data-qtyminus="${item.type}::${item.id}">−</button>
           <div class="qty-num">${item.qty}</div>
@@ -1411,6 +1386,16 @@ function renderCart() {
       </div>
     </div>
   `).join("");
+
+  // SECURE STEP: Now safely inject the text into the elements we just created
+  const rows = root.querySelectorAll('.cart-item');
+  state.cart.forEach((item, index) => {
+    const row = rows[index];
+    // textContent treats input as literal text, preventing XSS scripts from running
+    row.querySelector('.ci-name').textContent = item.name;
+    row.querySelector('.ci-sub').textContent = item.sub || item.badge || "";
+    row.querySelector('img').alt = item.name;
+  });
 }
 
 async function api(path, body) {
