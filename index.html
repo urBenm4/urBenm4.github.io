@@ -934,6 +934,7 @@
           <span>Total</span>
           <strong id="cartTotal">₱0</strong>
         </div>
+        <div class="order-id">Order ID: <b id="cartOrderId">—</b></div>
         <button class="btn gold" id="checkoutBtn">Checkout & Create Order</button>
       </div>
     </div>
@@ -1405,7 +1406,7 @@ async function checkout(){
   const itemList = state.cart.map(i => `• ${i.name}${i.sub ? ` (${i.sub})` : ""} — ${money(i.price * i.qty)}`).join("\n");
 
   try{
-    const response = await api("/order", {
+    await api("/order", {
       orderId: state.orderId,
       username: state.user.username,
       email: state.user.email || "—",
