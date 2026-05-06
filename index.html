@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>RiseSMP Store</title>
-<link href="https: //fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   /* ===================== RESET & ROOT ===================== */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -40,6 +40,19 @@
     line-height: 1.6;
     overflow-x: hidden;
     min-height: 100vh;
+  }
+
+  .fade-up {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp .6s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   /* ===================== BG EFFECTS ===================== */
@@ -982,13 +995,18 @@
   /* Rank card inner flex */
   .rank-card { display: flex; flex-direction: column; }
   .rank-perks { flex: 1; }
+
+  .fade-up:nth-child(1) { animation-delay: .1s; }
+  .fade-up:nth-child(2) { animation-delay: .2s; }
+  .fade-up:nth-child(3) { animation-delay: .3s; }
+  
 </style>
 </head>
 <body>
 
 <!-- ======================== NAV ======================== -->
 <nav id="navbar">
-  <a href="#" class="nav-logo">⚔ RaizaMC</a>
+  <a href="#" class="nav-logo">⚔ RiseSMP</a>
   <ul class="nav-links">
     <li><a href="#bundles">Bundles</a></li>
     <li><a href="#ranks">Ranks</a></li>
@@ -1011,7 +1029,7 @@
 <!-- ======================== HERO ======================== -->
 <div class="hero">
   <div class="hero-eyebrow">✨ Official Store</div>
-  <h1>Level Up Your<br/>Raiza Experience</h1>
+  <h1>Level Up Your<br/>RiseSMP Experience</h1>
   <p>Unlock exclusive cosmetics, ranks, and perks. All purchases support server maintenance and new features.</p>
   <a href="#ranks" class="btn btn-gold glow-pulse" style="margin: 0 auto; font-size: 1rem; padding: .75rem 2rem;">Browse Ranks 👑</a>
 </div>
@@ -1084,7 +1102,7 @@
 <!-- ======================== FOOTER ======================== -->
 <footer>
   <div class="footer-brand">
-    <a href="#" class="nav-logo">⚔ RaizaMC</a>
+    <a href="#" class="nav-logo">⚔ RiseSMP</a>
     <p>All purchases support server upkeep and future development. Thank you for being part of our community.</p>
     <p style="margin-top:.5rem; font-size:.75rem; color: #3a3a5a;">Payment: GCash · Maya · PayPal</p>
   </div>
@@ -1100,7 +1118,7 @@
     </ul>
   </div>
 </footer>
-<div class="footer-bottom">© 2025 RaizaMC · All rights reserved · Discord Support Available</div>
+<div class="footer-bottom">© 2025 RiseSMP · All rights reserved · Discord Support Available</div>
 
 <!-- ======================== CART SIDEBAR ======================== -->
 <div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
@@ -1131,7 +1149,7 @@
 <div class="modal-overlay" id="authModal">
   <div class="modal">
     <button class="modal-close" onclick="closeAuth()">✕</button>
-    <h3>RaizaMC Store</h3>
+    <h3>RiseSMP Store</h3>
     <p class="modal-sub">Sign in or create an account to continue</p>
     <div class="tabs">
       <button class="tab-btn active" id="signinTab" onclick="switchTab('signin')">Sign In</button>
@@ -1541,7 +1559,7 @@ async function checkout() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: "RaizaMC Store",
+          username: "RiseSMP Store",
           avatar_url: "https://i.imgur.com/4M34hi2.png",
           embeds: [{
             title: "🛒 New Order Received!",
@@ -1618,54 +1636,36 @@ function showFieldErr(id, msg) {
 }
 
 function doSignIn() {
-  const user = document.getElementById("siUser").value.trim();
-  const pass = document.getElementById("siPass").value;
+  const user = document.getElementById("siUser").value.trim().toLowerCase();
+  const pass = document.getElementById("siPass").value.trim();
+
   let ok = true;
   if (!user) { showFieldErr("siUserErr", "Enter your username"); ok = false; }
   if (!pass) { showFieldErr("siPassErr", "Enter your password"); ok = false; }
   if (!ok) return;
 
   const users = JSON.parse(localStorage.getItem("rmc_users") || "{}");
-  const stored = users[user.toLowerCase()];
-  if (!stored || stored.passHash !== simpleHash(pass)) {
-    showFieldErr("siPassErr", "Incorrect username or password");
+
+  console.log("All users:", users);
+
+  const stored = users[user];
+
+  if (!stored) {
+    showFieldErr("siUserErr", "User not found");
     return;
   }
+
+  if (stored.passHash !== simpleHash(pass)) {
+    showFieldErr("siPassErr", "Wrong password");
+    return;
+  }
+
   currentUser = { username: stored.username, email: stored.email };
   localStorage.setItem("rmc_user", JSON.stringify(currentUser));
+
   renderAuth();
   closeAuth();
   showToast(`👋 Welcome back, ${currentUser.username}!`, "success");
-}
-
-function doSignUp() {
-  const user  = document.getElementById("suUser").value.trim();
-  const email = document.getElementById("suEmail").value.trim();
-  const pass  = document.getElementById("suPass").value;
-  const pass2 = document.getElementById("suPass2").value;
-  let ok = true;
-  if (!user || user.length < 3) { showFieldErr("suUserErr", "Username must be 3+ characters"); ok = false; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFieldErr("suEmailErr", "Enter a valid email"); ok = false; }
-  if (pass.length < 6) { showFieldErr("suPassErr", "Password must be 6+ characters"); ok = false; }
-  if (pass !== pass2) { showFieldErr("suPass2Err", "Passwords do not match"); ok = false; }
-  if (!ok) return;
-
-  const users = JSON.parse(localStorage.getItem("rmc_users") || "{}");
-  if (users[user.toLowerCase()]) { showFieldErr("suUserErr", "Username already taken"); return; }
-
-  users[user.toLowerCase()] = { username: user, email, passHash: simpleHash(pass) };
-  localStorage.setItem("rmc_users", JSON.stringify(users));
-
-  const succ = document.getElementById("formSuccess");
-  succ.textContent = "✅ Account created! Signing you in...";
-  succ.style.display = "block";
-  setTimeout(() => {
-    currentUser = { username: user, email };
-    localStorage.setItem("rmc_user", JSON.stringify(currentUser));
-    renderAuth();
-    closeAuth();
-    showToast(`🎉 Welcome to RaizaMC, ${user}!`, "success");
-  }, 1200);
 }
 
 function signOut() {
