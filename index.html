@@ -1394,7 +1394,8 @@ async function checkout(){
     return;
   }
 
-  const total = state.cart.reduce((a,b) => a + b.price * b.qty, 0);
+  const total = state.cart.reduce((a, b) => a + b.price * b.qty, 0);
+  const itemsArray = state.cart.map(i => `${i.name}${i.sub ? ` (${i.sub})` : ""} x${i.qty}`);
   const itemList = state.cart.map(i => `• ${i.name}${i.sub ? ` (${i.sub})` : ""} — ${money(i.price * i.qty)}`).join("\n");
 
   try{
@@ -1403,6 +1404,7 @@ async function checkout(){
       username: state.user.username,
       email: state.user.email || "—",
       total,
+      items: itemsArray,
       itemList,
       clientStart: state.pageStart,
       hp: "",
