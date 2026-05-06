@@ -1432,7 +1432,7 @@ async function checkout(){
   const itemList = state.cart.map(i => `• ${i.name}${i.sub ? ` (${i.sub})` : ""} — ${money(i.price * i.qty)}`).join("\n");
 
   try{
-    const async response = await api("/order", {
+    const response = await api("/order", {
       orderId: state.orderId,
       username: state.user.username,
       email: state.user.email || "—",
