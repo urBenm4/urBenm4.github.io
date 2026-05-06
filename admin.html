@@ -67,12 +67,25 @@
     const API_URL = "https://6hka8t2vsc.execute-api.us-east-1.amazonaws.com"; // PASTE YOUR URL HERE
     let adminAuth = { user: '', pass: '' };
 
-    function doLogin() {
-        adminAuth.user = document.getElementById('adm-u').value;
-        adminAuth.pass = document.getElementById('adm-p').value;
-        document.getElementById('login-box').classList.add('hidden');
-        document.getElementById('main-ui').classList.remove('hidden');
-        loadOrders();
+    async function doLogin() {
+        const u = document.getElementById('adm-u').value;
+        const p = document.getElementById('adm-p').value;
+        
+        // Attempt to list orders immediately to check if creds are valid
+        const res = await apiCall({ 
+            action: 'listOrders', 
+            adminUsername: u, 
+            adminPassword: p 
+        });
+
+        if (res.success) {
+            adminAuth = { user: u, pass: p };
+            document.getElementById('login-box').classList.add('hidden');
+            document.getElementById('main-ui').classList.remove('hidden');
+            loadOrders();
+        } else {
+            alert('Invalid Credentials!');
+        }
     }
 
     function showTab(type) {
@@ -89,16 +102,22 @@
     }
 
     async function loadOrders() {
-        const res = await apiCall({ action: 'listOrders' });
+        const res = await apiCall({ 
+            action: 'listOrders', 
+            adminUsername: adminAuth.user, 
+            adminPassword: adminAuth.pass 
+        });
         const list = document.getElementById('order-rows');
-        list.innerHTML = res.orders.map(o => `
+        // FIX: Access res.items, not res.orders
+        list.innerHTML = res.items.map(o => `
             <tr>
-                <td>${o.orderId}</td><td>${o.username}</td><td>₱${o.total}</td>
+                <td>${o.orderId}</td>
+                <td>${o.username}</td>
+                <td>₱${o.total}</td>
                 <td>
                     <select id="st-${o.orderId}">
                         <option value="pending" ${o.status==='pending'?'selected':''}>PENDING</option>
                         <option value="completed" ${o.status==='completed'?'selected':''}>COMPLETED</option>
-                        <option value="cancelled" ${o.status==='cancelled'?'selected':''}>CANCELLED</option>
                     </select>
                 </td>
                 <td>
@@ -110,12 +129,18 @@
     }
 
     async function loadUsers() {
-        const res = await apiCall({ action: 'listUsers' });
+        const res = await apiCall({ 
+            action: 'listUsers', 
+            adminUsername: adminAuth.user, 
+            adminPassword: adminAuth.pass 
+        });
         const list = document.getElementById('user-rows');
-        list.innerHTML = res.users.map(u => `
+        // FIX: Access res.items, not res.users
+        list.innerHTML = res.items.map(u => `
             <tr>
-                <td>${u.userId}</td><td>${u.email}</td>
-                <td><input type="text" id="newpw-${u.userId}" placeholder="Set New Pass" style="margin:0"></td>
+                <td>${u.userId}</td>
+                <td>${u.email}</td>
+                <td><input type="text" id="newpw-${u.userId}" placeholder="New Pass"></td>
                 <td><button class="btn-green" onclick="changePass('${u.userId}')">Update</button></td>
             </tr>
         `).join('');
