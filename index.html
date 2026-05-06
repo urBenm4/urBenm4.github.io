@@ -3,16 +3,23 @@
 <head>
 
 <link rel="icon" type="image/png" href="https://i.imgur.com/UqrBeg2.png">
-<title>RiseSMP | Official Store</title>
-<meta name="title" content="RiseSMP | Official Store">
-<meta name="description" content="Support the RiseSMP community and unlock exclusive ranks, crates, and gear. Secure checkout and instant delivery.">
+<title>RiseSMP Official Store | RiseSMP Ranks & Perks</title>
+<meta name="title" content="RiseSMP Official Store | Premium Minecraft Ranks & Perks">
+<meta name="description" content="Elevate your RiseSMP experience. Purchase exclusive Minecraft ranks, custom crates, and powerful gear with instant global delivery and 24/7 support. Join the elite.">
+
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://store.risesmp.cc/">
-<meta property="og:title" content="RiseSMP Official Store">
-<meta property="og:description" content="Enhance your gameplay with exclusive perks. Fast delivery and 24/7 support.">
+<meta property="og:title" content="RiseSMP Official Store - Fuel Your Survival Legend">
+<meta property="og:description" content="Unlock custom kits, server-wide boosters, and legendary ranks. All purchases directly support the development of our Minecraft community.">
 <meta property="og:image" content="https://i.imgur.com/UqrBeg2.png">
 
-<meta name="theme-color" content="#8B0000">
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="https://store.risesmp.cc/">
+<meta property="twitter:title" content="RiseSMP Store | Exclusive In-Game Upgrades">
+<meta property="twitter:description" content="Instant delivery. Secure payments. Unstoppable perks. Get your gear at the official RiseSMP store today.">
+<meta property="twitter:image" content="https://i.imgur.com/UqrBeg2.png">
+
+<meta name="theme-color" content="#A61F2B">
 
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -1411,7 +1418,7 @@ async function checkout(){
       time: new Date().toLocaleString("en-PH", { timeZone:"Asia/Manila" })
     });
 
-    $("#finalOrderId").textContent = state.orderId;
+    $("#finalOrderId").textContent = response.orderId;
     $("#discordBtn").href = DISCORD_TICKET_URL;
     closeOverlay("cartOverlay");
     openOverlay("successOverlay");
