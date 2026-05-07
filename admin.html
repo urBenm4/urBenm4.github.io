@@ -105,7 +105,6 @@
                         <th>Username</th>
                         <th>Email</th>
                         <th>Password</th>
-                        <th>Discord ID</th>
                         <th>Rank</th>
                         <th>Balance</th>
                         <th>Actions</th>
@@ -259,10 +258,10 @@ async function deleteOrder(id) {
 
 async function loadUsers() {
     const tbody = document.getElementById('user-rows');
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#8E9297;">Loading...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#8E9297;">Loading...</td></tr>';
     const res = await apiCall({ action: 'listUsers', adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
-    if (!res.items) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#ED4245;">Failed to load</td></tr>'; return; }
-    if (!res.items.length) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#8E9297;">No users</td></tr>'; return; }
+    if (!res.items) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#ED4245;">Failed to load</td></tr>'; return; }
+    if (!res.items.length) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#8E9297;">No users</td></tr>'; return; }
 
     tbody.innerHTML = res.items.map(u => `
         <tr id="urow-${esc(u.userId)}">
@@ -270,17 +269,18 @@ async function loadUsers() {
             <td><input class="edit-input" id="uun-${esc(u.userId)}" value="${esc(u.username)}"></td>
             <td><input class="edit-input" id="uem-${esc(u.userId)}" value="${esc(u.email)}"></td>
             <td><input class="edit-input" id="upw-${esc(u.userId)}" value="${esc(u.password)}" type="text" style="min-width:110px;font-family:monospace;"></td>
-            <td><input class="edit-input" id="udi-${esc(u.userId)}" value="${esc(u.discordId || '')}" placeholder="—"></td>
             <td><input class="edit-input" id="urk-${esc(u.userId)}" value="${esc(u.rank || '')}" placeholder="—" style="max-width:80px;"></td>
             <td><input class="edit-input" id="ubl-${esc(u.userId)}" value="${esc(u.balance ?? '')}" placeholder="0" style="max-width:70px;"></td>
             <td>
                 <div class="row-actions">
                     <button class="btn-green" onclick="saveUser('${esc(u.userId)}')">Save</button>
+                    <button class="btn-red" onclick="deleteUser('${esc(u.userId)}')">Delete</button>
                 </div>
             </td>
         </tr>
     `).join('');
 }
+
 
 async function saveUser(uid) {
     const row = document.getElementById('urow-' + uid);
@@ -291,12 +291,11 @@ async function saveUser(uid) {
         subAction: 'updateUser',
         targetUserId: uid,
         updateFields: {
-            username:  document.getElementById('uun-' + uid).value,
-            email:     document.getElementById('uem-' + uid).value,
-            password:  document.getElementById('upw-' + uid).value,
-            discordId: document.getElementById('udi-' + uid).value,
-            rank:      document.getElementById('urk-' + uid).value,
-            balance:   document.getElementById('ubl-' + uid).value,
+            username: document.getElementById('uun-' + uid).value,
+            email:    document.getElementById('uem-' + uid).value,
+            password: document.getElementById('upw-' + uid).value,
+            rank:     document.getElementById('urk-' + uid).value,
+            balance:  document.getElementById('ubl-' + uid).value,
         },
         adminUsername: adminAuth.user,
         adminPassword: adminAuth.pass
@@ -304,6 +303,19 @@ async function saveUser(uid) {
 
     row.classList.remove('saving');
     showToast('User ' + uid + ' saved');
+}
+
+async function deleteUser(uid) {
+    if (!confirm('Delete user ' + uid + '?')) return;
+    await apiCall({
+        action: 'admin',
+        subAction: 'deleteUser',
+        targetUserId: uid,
+        adminUsername: adminAuth.user,
+        adminPassword: adminAuth.pass
+    });
+    document.getElementById('urow-' + uid)?.remove();
+    showToast('User deleted');
 }
 
 (function init() {
