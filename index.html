@@ -322,7 +322,6 @@
   .grid.cards-3{grid-template-columns:repeat(3,minmax(0,1fr))}
   .grid.cards-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 
-  /* ── Card base ─────────────────────────────────────────────────── */
   .card{
     background:
       linear-gradient(180deg, rgba(255,255,255,.045), transparent 28%),
@@ -332,7 +331,6 @@
     box-shadow:0 8px 24px rgba(0,0,0,.20);
     overflow:hidden;position:relative;
     transform:translateY(14px);opacity:0;
-    /* NO translateY on hover — that's what makes the whole card "jump" */
     transition: transform 0.25s ease, box-shadow 0.25s ease;
     content-visibility:auto;
     contain-intrinsic-size:420px;
@@ -345,7 +343,6 @@
     .card { transition: none; }
   }
 
-  /* ── Card media — the image lives here, overflow:hidden clips zoom ── */
   .card-media{
     position:relative;
     aspect-ratio:16/10;
@@ -363,7 +360,6 @@
     100% { transform: scale3d(1.06, 1.06, 1); }
   }
 
-  /* Shimmer sweep — slides across on hover */
   .card-media::before{
     content:"";
     position:absolute;inset:0;z-index:2;
@@ -382,7 +378,6 @@
     transition:transform 0.65s cubic-bezier(0.4,0,0.2,1);
   }
 
-  /* Bottom vignette — fades in on hover */
   .card-media::after{
     content:"";
     position:absolute;inset:0;z-index:1;
@@ -393,7 +388,6 @@
   }
   .card:hover .card-media::after{opacity:1}
 
-  /* ── Image zoom — ONLY the img scales, card stays put ──────────── */
   .card-media img{
     width:100%;height:100%;object-fit:cover;display:block;
     transform:scale(1);
@@ -721,7 +715,6 @@
     .mobile-bar .btn span{display:inline}
   }
 
-  /* ── Profile chip ─────────────────────────────────────────────── */
   .profile-chip{
     display:inline-flex;align-items:center;gap:10px;
     padding:5px 10px 5px 5px;border-radius:999px;
@@ -1056,7 +1049,7 @@
 </div>
 
 <script>
-const API_BASE = "https://6hka8t2vsc.execute-api.us-east-1.amazonaws.com"; // change this
+const API_BASE = "https://6hka8t2vsc.execute-api.us-east-1.amazonaws.com"; // plz no abuse ty
 const DISCORD_TICKET_URL = "https://discord.com/channels/1291985631911870499/1432734640380313773";
 
 const PRODUCTS = {
@@ -1166,10 +1159,8 @@ function renderAuthTab(){
 function renderAuthButtons() {
   const isLoggedIn = !!(state.user);
 
-  // Nav desktop
   $("#signinBtn").style.display = isLoggedIn ? "none" : "inline-flex";
 
-  // Profile chip
   const chip = $("#profileChip");
   if (isLoggedIn) {
     const uname = state.user.username || "Guest";
@@ -1180,7 +1171,6 @@ function renderAuthButtons() {
     chip.style.display = "none";
   }
 
-  // Mobile bar
   const mobileSignin = $("#mobileSigninBtn");
   if (isLoggedIn) {
     mobileSignin.textContent = `Signed in: ${state.user.username}`;
@@ -1376,7 +1366,6 @@ function renderCart() {
     return;
   }
 
-  // Set the skeleton structure first
   root.innerHTML = state.cart.map(item => `
     <div class="cart-item">
       <img class="${item.imageClass || ""}" src="${item.image}" alt="" loading="lazy" decoding="async">
@@ -1396,7 +1385,6 @@ function renderCart() {
     </div>
   `).join("");
 
-  // SECURE STEP: Now safely inject the text into the elements we just created
   const rows = root.querySelectorAll('.cart-item');
   state.cart.forEach((item, index) => {
     const row = rows[index];
@@ -1408,14 +1396,12 @@ function renderCart() {
 }
 
 async function api(path, body) {
-  // 1. Map paths to actions
   const actionMap = {
     "/auth/signup": "createUser",
     "/auth/login": "getUser",
     "/order": "order"
   };
 
-  // Fallback to "health" only if the path isn't recognized
   const action = actionMap[path] || "health";
 
   try {
@@ -1428,27 +1414,21 @@ async function api(path, body) {
       body: JSON.stringify({ ...body, action })
     });
 
-    // 2. Check if the response is actually JSON and readable
-    // If the server crashes, res.json() might fail or return HTML
     const json = await res.json().catch(() => null);
 
-    // 3. Handle non-200 status codes
     if (!res.ok) {
-      // Provide a clear error message from the server or a default fallback
       const message = json?.error || json?.message || `Error: ${res.status}`;
       throw new Error(message);
     }
 
-    // 4. Handle empty/invalid JSON responses
     if (!json) {
       throw new Error("The server sent an invalid response.");
     }
 
     return json;
   } catch (err) {
-    // 5. Catch network errors (like being offline)
     console.error("API Call Failed:", err);
-    throw err; // Re-throw so your UI (like a toast) can catch it
+    throw err;
   }
 }
 
@@ -1499,7 +1479,6 @@ async function signUp(){
       hp,
       clientStart
     });
-    // Auto sign-in immediately after account creation
     const loginOut = await api("/auth/login", { username, password: pass });
     state.user = loginOut.user;
     state.token = loginOut.token;
@@ -1532,7 +1511,7 @@ async function checkout(){
   }
 
   const total = state.cart.reduce((a, b) => a + b.price * b.qty, 0);
-  const itemsArray = state.cart.map(i => i.name); // Send ONLY the names, e.g., ["Fairy Bundle", "30K ClaimBlocks"]
+  const itemsArray = state.cart.map(i => i.name);
   const itemList = state.cart.map(i => `• ${i.name}${i.sub ? ` (${i.sub})` : ""} — ${money(i.price * i.qty)}`).join("\n");
 
   try{
@@ -1540,7 +1519,6 @@ async function checkout(){
       orderId: state.orderId,
       username: state.user.username,
       email: state.user.email || "—",
-   //   total,
       items: itemsArray,
       itemList,
       clientStart: state.pageStart,
