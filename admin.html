@@ -232,13 +232,24 @@ async function saveOrder(id) {
     const row = document.getElementById('orow-' + id);
     row.classList.add('saving');
 
-    const status = document.getElementById('os-' + id).value;
-    await apiCall({ action: 'admin', subAction: 'update', orderId: id, updateFields: { status }, adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
+    await apiCall({
+        action: 'admin',
+        subAction: 'update',
+        orderId: id,
+        updateFields: {
+            username: document.getElementById('ou-' + id).value,
+            email:    document.getElementById('oe-' + id).value,
+            items:    document.getElementById('oi-' + id).value.split(',').map(s => s.trim()),
+            total:    Number(document.getElementById('ot-' + id).value),
+            status:   document.getElementById('os-' + id).value,
+        },
+        adminUsername: adminAuth.user,
+        adminPassword: adminAuth.pass
+    });
 
     row.classList.remove('saving');
     showToast('Order ' + id + ' saved');
 }
-
 async function deleteOrder(id) {
     if (!confirm('Delete order ' + id + '?')) return;
     await apiCall({ action: 'admin', subAction: 'delete', orderId: id, adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
@@ -275,22 +286,21 @@ async function saveUser(uid) {
     const row = document.getElementById('urow-' + uid);
     row.classList.add('saving');
 
-    const newPw = document.getElementById('upw-' + uid).value;
-    if (newPw) {
-        await apiCall({ action: 'admin', subAction: 'changeUserPass', targetUserId: uid, newPassword: newPw, adminUsername: adminAuth.user, adminPassword: adminAuth.pass });
-    }
-
-    const updatedUser = {
-        username: document.getElementById('uun-' + uid).value,
-        email:    document.getElementById('uem-' + uid).value,
-        discordId: document.getElementById('udi-' + uid).value,
-        rank:     document.getElementById('urk-' + uid).value,
-        balance:  document.getElementById('ubl-' + uid).value,
-        password: newPw,
-        userId:   uid
-    };
-
-    await apiCall({ action: 'createUser', ...updatedUser });
+    await apiCall({
+        action: 'admin',
+        subAction: 'updateUser',
+        targetUserId: uid,
+        updateFields: {
+            username:  document.getElementById('uun-' + uid).value,
+            email:     document.getElementById('uem-' + uid).value,
+            password:  document.getElementById('upw-' + uid).value,
+            discordId: document.getElementById('udi-' + uid).value,
+            rank:      document.getElementById('urk-' + uid).value,
+            balance:   document.getElementById('ubl-' + uid).value,
+        },
+        adminUsername: adminAuth.user,
+        adminPassword: adminAuth.pass
+    });
 
     row.classList.remove('saving');
     showToast('User ' + uid + ' saved');
