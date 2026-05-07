@@ -1072,9 +1072,9 @@ const PRODUCTS = {
     { id:"rank-raiza", name:"RAIZA+", badge:"Premium Rank", price:600, image:"https://i.imgur.com/KX2ltjY.png", featured:false, desc:"Top-tier rank with the most features and perks.", perks:["/fly","/beezooka","/kittycannon","/repair all","+ 8 Sethome slots","+ 7 Playerwarp slots","5x COSME Key","500K Starting Money"] }
   ],
   commands: [
-    { id:"cmd-fly", name:"/fly", badge:"Command Pass", price:60, period:"Monthly", image:"https://media.forgecdn.net/avatars/thumbnails/1512/39/256/256/638982093728048119.png", desc:"Fly freely anywhere on the server.", details:"Monthly access to /fly for easy travel and building.", alt:"Whole Season", altPrice:150 },
-    { id:"cmd-flyspeed", name:"/flyspeed", badge:"Command Pass", price:100, period:"Monthly", image:"https://mcmodels.net/_ipx/_/https://api.mcmodels.net/storage/product-images/11893/01HXZ5YQDYTH5R8ESYM3S7BVM8.gif", desc:"Increase flight and movement speed.", details:"A simple boost for faster movement during gameplay.", alt:"Whole Season", altPrice:200 },
-    { id:"cmd-repair", name:"/repair", badge:"Command Pass", price:70, period:"Monthly", image:"https://mcmodels.net/_ipx/_/https://api.mcmodels.net/storage/product-images/9168/iuPR8i5OgFcxT54b.png", desc:"Repair your tools instantly.", details:"Handy utility command for keeping tools ready.", alt:"Whole Season", altPrice:160 }
+    { id:"cmd-fly",      name:"/fly",      itemKey:"/fly (Monthly)",      badge:"Command Pass", price:60,  altItemKey:"/fly (Whole Season)",      period:"Monthly", image:"https://cdn.modrinth.com/data/DgKPD5Em/d5489cf2329a4dfb24079f60a205f0fd23370aa0.webp", desc:"Fly freely anywhere on the server.", details:"Monthly access to /fly for easy travel and building.", alt:"Whole Season", altPrice:150 },
+    { id:"cmd-flyspeed", name:"/flyspeed", itemKey:"/flyspeed (Monthly)", badge:"Command Pass", price:100, altItemKey:"/flyspeed (Whole Season)", period:"Monthly", image:"https://cdn.modrinth.com/data/DgKPD5Em/d5489cf2329a4dfb24079f60a205f0fd23370aa0.webp", desc:"Increase flight and movement speed.", details:"A simple boost for faster movement during gameplay.", alt:"Whole Season", altPrice:200 },
+    { id:"cmd-repair",   name:"/repair",   itemKey:"/repair (Monthly)",   badge:"Command Pass", price:70,  altItemKey:"/repair (Whole Season)",   period:"Monthly", image:"https://cdn.modrinth.com/data/aq4dI2bx/d080c7e1e764e24e37dafac808c08d20d2dad239.png", desc:"Repair your tools instantly.", details:"Handy utility command for keeping tools ready.", alt:"Whole Season", altPrice:160 }
   ],
   keys: [
     { id:"key-headless", name:"Headless Key", badge:"Cosmetic Key", price:50, image:"https://mcmodels.net/_ipx/_/https://api.mcmodels.net/storage/product-images/9168/iuPR8i5OgFcxT54b.png", desc:"Unlock the Headless cosmetic.", detail:"Great for players who want a unique cosmetic unlock." },
@@ -1232,6 +1232,17 @@ function renderSection(gridId, items, type){
       ? `<div class="perks">${item.perks.slice(0,7).map(p => `<span class="perk">${p.startsWith("/") ? `<code>${escapeHtml(p)}</code>` : escapeHtml(p)}</span>`).join("")}</div>`
       : `<div class="pill-row"><span class="pill">${type === "command" ? item.period : item.badge}</span><span class="pill">Instant access</span></div>`;
 
+    const cardActions = type === "command"
+      ? `<div class="card-actions">
+           <button class="btn secondary" data-view="${item.id}">View Details</button>
+           <button class="btn primary" data-add="${item.id}" data-season="monthly">Monthly &#x20b1;${item.price}</button>
+           <button class="btn gold"    data-add="${item.id}" data-season="season">Season &#x20b1;${item.altPrice}</button>
+         </div>`
+      : `<div class="card-actions">
+           <button class="btn secondary" data-view="${item.id}">View Details</button>
+           <button class="btn ${type === "rank" ? "gold" : "primary"}" data-add="${item.id}">${type === "rank" ? "Buy Rank" : "Add to Cart"}</button>
+         </div>`;
+
     return `
       <article class="card" data-type="${type}" data-id="${item.id}">
         <div class="card-media">
@@ -1247,10 +1258,7 @@ function renderSection(gridId, items, type){
             ${priceHtml}
           </div>
           ${pills}
-          <div class="card-actions">
-            <button class="btn secondary" data-view="${item.id}">View Details</button>
-            <button class="btn ${type === "rank" ? "gold" : "primary"}" data-add="${item.id}">${type === "rank" ? "Buy Rank" : type === "command" ? "Add Pass" : "Add to Cart"}</button>
-          </div>
+          ${cardActions}
         </div>
       </article>
     `;
@@ -1298,34 +1306,37 @@ function openDetail(type, id){
   openOverlay("detailOverlay");
 }
 
-function addToCart(type, id){
-  if (!state.user || !state.token){
-    showToast("Sign in first, then add items to your cart.", "warn");
-    openAuth("signin");
-    return;
-  }
-  const item = findItem(type, id);
-  if (!item) return;
+function addToCart(type, id, season = "monthly") {
+    if (!state.user || !state.token) {
+        showToast("Sign in first, then add items to your cart.", "warn");
+        openAuth("signin");
+        return;
+    }
+    const item = findItem(type, id);
+    if (!item) return;
 
-  const existing = state.cart.find(x => x.type === type && x.id === id);
-  if (existing) existing.qty += 1;
-  else {
-    state.cart.push({
-      type,
-      id,
-      name:item.name,
-      badge:item.badge,
-      price:item.price,
-      image:item.image,
-      imageClass:item.imageClass || "",
-      sub:type === "command" ? item.period : "",
-      qty:1
-    });
-  }
-  if (state.cart.length === 1) state.orderId = makeOrderId();
-  save();
-  renderCart();
-  showToast(`${item.name} added to cart.`, "success");
+    const isWholeSeason = type === "command" && season === "season";
+    const cartName  = type === "command"
+        ? (isWholeSeason ? item.altItemKey  : item.itemKey)
+        : item.name;
+    const cartPrice = isWholeSeason ? item.altPrice : item.price;
+    const cartSub   = isWholeSeason ? "Whole Season" : (item.period || "");
+    const cartId    = isWholeSeason ? id + "-season" : id;
+
+    const existing = state.cart.find(x => x.id === cartId);
+    if (existing) existing.qty += 1;
+    else {
+        state.cart.push({
+            type, id: cartId, name: cartName,
+            badge: item.badge, price: cartPrice,
+            image: item.image, imageClass: item.imageClass || "",
+            sub: cartSub, qty: 1
+        });
+    }
+    if (state.cart.length === 1) state.orderId = makeOrderId();
+    save();
+    renderCart();
+    showToast(`${cartName} added to cart.`, "success");
 }
 
 function removeFromCart(type, id){
@@ -1567,9 +1578,10 @@ function bindButtons(){
       const id = view.dataset.view;
       openDetail(findTypeForId(id), id);
     }
-    if (add){
+    if (add) {
       const id = add.dataset.add;
-      addToCart(findTypeForId(id), id);
+      const season = add.dataset.season || "monthly";
+      addToCart(findTypeForId(id), id, season);
     }
     if (remove){
       const [type, id] = remove.dataset.remove.split("::");
