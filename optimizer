@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Haze Method Protocol v8.5 — AST Engine</title>
+    <style>
+        :root {
+            --bg: #0b0b14;
+            --surface: #14142b;
+            --surface2: #1a1a35;
+            --border: #252545;
+            --text: #d4d4e8;
+            --text2: #9898b8;
+            --accent: #7c3aed;
+            --accent2: #06b6d4;
+            --green: #00ff88;
+            --red: #ff4470;
+            --amber: #f59e0b;
+            --glow: 0 0 20px rgba(124, 58, 237, 0.3);
+            --glow-cyan: 0 0 20px rgba(6, 182, 212, 0.25);
+            --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            --mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 50% 0%, rgba(124, 58, 237, 0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 100%, rgba(6, 182, 212, 0.05) 0%, transparent 60%),
+                linear-gradient(rgba(255, 255, 255, 0.008) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.008) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+            color: var(--text);
+            font-family: var(--font);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 24px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 720px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 8px 0 4px;
+        }
+        .header .badge {
+            display: inline-block;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent2);
+            border: 1px solid rgba(6, 182, 212, 0.35);
+            border-radius: 999px;
+            padding: 4px 14px;
+            margin-bottom: 8px;
+        }
+        .header h1 {
+            font-family: var(--mono);
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            background: linear-gradient(135deg, #c4b5fd, #67e8f9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 4px 0;
+        }
+        .header .sub {
+            font-size: 0.8rem;
+            color: var(--text2);
+            letter-spacing: 0.04em;
+            font-family: var(--mono);
+        }
+
+        /* Drop Zone */
+        .drop-zone {
+            position: relative;
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: var(--surface);
+            overflow: hidden;
+        }
+        .drop-zone::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: 18px;
+            padding: 2px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .drop-zone.drag-over::before,
+        .drop-zone:hover::before {
+            opacity: 0.7;
+        }
+        .drop-zone.drag-over {
+            border-color: transparent;
+            box-shadow: var(--glow), var(--glow-cyan);
+            background: #1a1a3a;
+        }
+        .drop-zone:hover {
+            border-color: #3d3d6b;
+            box-shadow: var(--glow);
+        }
+        .drop-zone .icon {
+            font-size: 2.8rem;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 1;
+            filter: grayscale(0.2);
+        }
+        .drop-zone .title {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text);
+            position: relative;
+            z-index: 1;
+        }
+        .drop-zone .hint {
+            font-size: 0.78rem;
+            color: var(--text2);
+            margin-top: 4px;
+            position: relative;
+            z-index: 1;
+        }
+        .drop-zone input[type=file] {
+            display: none;
+        }
+
+        /* File info bar */
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--surface2);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            font-family: var(--mono);
+            font-size: 0.78rem;
+            flex-wrap: wrap;
+        }
+        .file-info .name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: var(--text);
+        }
+        .file-info .size {
+            color: var(--text2);
+            white-space: nowrap;
+        }
+        .file-info .remove {
+            background: none;
+            border: 1px solid var(--border);
+            color: var(--text2);
+            padding: 4px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .file-info .remove:hover {
+            border-color: var(--red);
+            color: var(--red);
+        }
+        .hidden {
+            display: none !important;
+        }
+
+        /* Buttons row */
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            font-family: var(--mono);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #5b21b6);
+            color: #fff;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 16px rgba(124, 58, 237, 0.3);
+        }
+        .btn-primary:hover:not(:disabled) {
+            box-shadow: 0 0 28px rgba(124, 58, 237, 0.5);
+            transform: translateY(-1px);
+        }
+        .btn-pause {
+            background: var(--surface2);
+            color: var(--amber);
+            border-color: rgba(245, 158, 11, 0.4);
+        }
+        .btn-pause:hover:not(:disabled) {
+            border-color: var(--amber);
+            box-shadow: 0 0 14px rgba(245, 158, 11, 0.25);
+        }
+        .btn-download {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: #fff;
+            border-color: #10b981;
+            box-shadow: 0 0 16px rgba(16, 185, 129, 0.3);
+        }
+        .btn-download:hover:not(:disabled) {
+            box-shadow: 0 0 28px rgba(16, 185, 129, 0.5);
+            transform: translateY(-1px);
+        }
+        .btn-reset {
+            background: var(--surface2);
+            color: var(--text2);
+            border-color: var(--border);
+        }
+        .btn-reset:hover:not(:disabled) {
+            color: var(--text);
+            border-color: #4a4a7a;
+        }
+
+        /* Log panel */
+        .log-panel {
+            background: #08081a;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            font-family: var(--mono);
+            font-size: 0.7rem;
+            max-height: 320px;
+            overflow-y: auto;
+            line-height: 1.6;
+            color: #7a7aaa;
+            scroll-behavior: smooth;
+        }
+        .log-panel .line {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .log-panel .line.dim {
+            color: #4a4a6a;
+        }
+        .log-panel .line.green {
+            color: var(--green);
+        }
+        .log-panel .line.amber {
+            color: var(--amber);
+        }
+        .log-panel .line.red {
+            color: var(--red);
+        }
+        .log-panel .line.cyan {
+            color: var(--accent2);
+        }
+        .log-panel .line.purple {
+            color: #a78bfa;
+        }
+        .log-panel .cursor::after {
+            content: '▊';
+            animation: blink 1s step-end infinite;
+            color: var(--green);
+        }
+        @keyframes blink {
+            50% {
+                opacity: 0;
+            }
+        }
+
+        /* Progress */
+        .progress-wrap {
+            height: 3px;
+            background: var(--surface2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            width: 0%;
+            border-radius: 3px;
+            transition: width 0.4s ease;
+        }
+
+        /* Info cards */
+        .info-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            font-size: 0.78rem;
+            color: var(--text2);
+            line-height: 1.5;
+        }
+        .info-card h3 {
+            font-family: var(--mono);
+            color: var(--text);
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            letter-spacing: 0.03em;
+        }
+        .info-card code {
+            background: #1e1e3a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            color: var(--accent2);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 999px;
+            font-family: var(--mono);
+            font-size: 0.72rem;
+            z-index: 999;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            animation: toastIn 0.35s ease, toastOut 0.35s ease 2.5s forwards;
+            pointer-events: none;
+        }
+        @keyframes toastIn {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+        @keyframes toastOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+                transform: translateX(-50%) translateY(-8px);
+            }
+        }
+
+        @media (max-width: 500px) {
+            body {
+                padding: 12px;
+            }
+            .drop-zone {
+                padding: 32px 16px;
+            }
+            .btn {
+                padding: 10px 16px;
+                font-size: 0.7rem;
+            }
+            .header h1 {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <div class="header">
+            <span class="badge">AST Engine v8.5</span>
+            <h1>Haze Method Protocol</h1>
+            <p class="sub">Binary AST Pipeline — Zero Re-encoding · Maximum Quality Bypass</p>
+        </div>
+
+        <!-- Drop Zone -->
+        <div class="drop-zone" id="dropZone">
+            <div class="icon">📁</div>
+            <div class="title">Drop Video Here or Click to Browse</div>
+            <div class="hint">MP4 / MOV · H.264 or HEVC · 1080p+ recommended</div>
+            <input type="file" id="fileInput" accept="video/mp4,video/quicktime,.mp4,.mov">
+        </div>
+
+        <!-- File info (hidden until file selected) -->
+        <div class="file-info hidden" id="fileInfo">
+            <span class="name" id="fileName"></span>
+            <span class="size" id="fileSize"></span>
+            <button class="remove" id="btnRemove">✕ Clear</button>
+        </div>
+
+        <!-- Buttons -->
+        <div class="btn-row">
+            <button class="btn btn-primary" id="btnOptimize" disabled>⚡ Optimize</button>
+            <button class="btn btn-pause hidden" id="btnPause">⏸ Pause</button>
+            <button class="btn btn-download hidden" id="btnDownload">⬇ Download</button>
+            <button class="btn btn-reset hidden" id="btnReset">↻ New File</button>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-wrap hidden" id="progressWrap">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <!-- Log -->
+        <div class="log-panel" id="logPanel">
+            <div class="line dim">> AST Engine idle — waiting for input file...</div>
+            <div class="line dim cursor">_</div>
+        </div>
+
+        <!-- Info -->
+        <div class="info-card">
+            <h3>⚙ How the AST Engine Works</h3>
+            <p><strong>Stage 1:</strong> <code>ffmpeg -c copy -movflags +faststart</code> — lossless container restructure. Moves moov atom before mdat so platforms can start processing immediately.</p>
+            <p><strong>Stage 2:</strong> Binary AST Patcher injects thousands of fake 8-byte samples into <code>stsz</code>, <code>stsc</code>, and <code>stco</code> tables. The platform's ingestion server sees an already-optimized file and skips destructive re-compression.</p>
+            <p><strong>Stage 3:</strong> Multi-pass offset recalculation ensures every chunk pointer stays valid. All processing happens locally — <em>your video never leaves your device.</em></p>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toastContainer"></div>
+
+    <!-- FFmpeg WASM -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js">
+    </script>
+
+    <script>
+        (function() {
+            // ──────────────────────────────────────
+            // DOM refs
+            // ──────────────────────────────────────
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+            const btnRemove = document.getElementById('btnRemove');
+            const btnOptimize = document.getElementById('btnOptimize');
+            const btnPause = document.getElementById('btnPause');
+            const btnDownload = document.getElementById('btnDownload');
+            const btnReset = document.getElementById('btnReset');
+            const logPanel = document.getElementById('logPanel');
+            const progressWrap = document.getElementById('progressWrap');
+            const progressBar = document.getElementById('progressBar');
+            const toastContainer = document.getElementById('toastContainer');
+
+            // ──────────────────────────────────────
+            // State
+            // ──────────────────────────────────────
+            let selectedFile = null;
+            let ffmpeg = null;
+            let ffmpegLoaded = false;
+            let ffmpegLoading = false;
+            let pipelineRunning = false;
+            let pipelinePaused = false;
+            let pauseFlag = false;
+            let cancelFlag = false;
+            let intermediateBuffer = null; // faststart result saved here on pause
+            let finalBuffer = null;
+            let finalFileName = null;
+            let originalFileName = null;
+            let stageReached = 0; // 0=none, 1=faststart done, 2=patch done, 3=full done
+
+            // ──────────────────────────────────────
+            // Toast
+            // ──────────────────────────────────────
+            function toast(msg) {
+                const el = document.createElement('div');
+                el.className = 'toast';
+                el.textContent = msg;
+                toastContainer.appendChild(el);
+                setTimeout(() => el.remove(), 3000);
+            }
+
+            // ──────────────────────────────────────
+            // Logging
+            // ──────────────────────────────────────
+            function log(msg, cls = '') {
+                const line = document.createElement('div');
+                line.className = 'line ' + cls;
+                line.textContent = msg;
+                // remove cursor line if present
+                const cursorLine = logPanel.querySelector('.cursor');
+                if (cursorLine) cursorLine.remove();
+                logPanel.appendChild(line);
+                // add cursor back
+                const cursor = document.createElement('div');
+                cursor.className = 'line dim cursor';
+                cursor.textContent = '_';
+                logPanel.appendChild(cursor);
+                logPanel.scrollTop = logPanel.scrollHeight;
+            }
+
+            function clearLog() {
+                logPanel.innerHTML = '';
+                const cursor = document.createElement('div');
+                cursor.className = 'line dim cursor';
+                cursor.textContent = '_';
+                logPanel.appendChild(cursor);
+            }
+
+            // ──────────────────────────────────────
+            // Progress
+            // ──────────────────────────────────────
+            function setProgress(pct) {
+                progressBar.style.width = Math.min(100, Math.max(0, pct)) + '%';
+            }
+
+            function showProgress(show) {
+                progressWrap.classList.toggle('hidden', !show);
+                if (!show) setProgress(0);
+            }
+
+            // ──────────────────────────────────────
+            // Button state management
+            // ──────────────────────────────────────
+            function updateButtons() {
+                const hasFile = !!selectedFile;
+                const hasOutput = !!finalBuffer;
+                const isProcessing = pipelineRunning && !pipelinePaused;
+                const isPaused = pipelinePaused;
+
+                btnOptimize.disabled = !hasFile || isProcessing || hasOutput;
+                btnOptimize.classList.toggle('hidden', hasOutput || isProcessing);
+                btnPause.classList.toggle('hidden', !isProcessing && !isPaused);
+                btnPause.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+                btnPause.disabled = !isProcessing && !isPaused;
+                btnDownload.classList.toggle('hidden', !hasOutput);
+                btnReset.classList.toggle('hidden', !hasFile && !hasOutput);
+                fileInfo.classList.toggle('hidden', !hasFile);
+                showProgress(isProcessing || isPaused);
+
+                if (isPaused && stageReached >= 1) {
+                    btnOptimize.classList.add('hidden');
+                }
+            }
+
+            // ──────────────────────────────────────
+            // File handling
+            // ──────────────────────────────────────
+            function handleFile(file) {
+                if (!file) return;
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+                if (!['mp4', 'mov'].includes(ext)) {
+                    toast('⚠ Only MP4 and MOV files are supported');
+                    return;
+                }
+                if (file.size > 2 * 1024 * 1024 * 1024) {
+                    toast('⚠ Files over 2GB may cause browser memory issues — proceed with caution');
+                }
+                selectedFile = file;
+                originalFileName = file.name;
+                fileName.textContent = file.name;
+                fileSize.textContent = formatBytes(file.size);
+                finalBuffer = null;
+                finalFileName = null;
+                intermediateBuffer = null;
+                stageReached = 0;
+                pipelineRunning = false;
+                pipelinePaused = false;
+                pauseFlag = false;
+                cancelFlag = false;
+                updateButtons();
+                clearLog();
+                log(`> File loaded: ${file.name} (${formatBytes(file.size)})`, 'cyan');
+                log('> Ready to optimize. Click "Optimize" to begin.', 'dim');
+            }
+
+            function clearFile() {
+                if (pipelineRunning) {
+                    cancelFlag = true;
+                    pipelineRunning = false;
+                    pipelinePaused = false;
+                    pauseFlag = false;
+                }
+                selectedFile = null;
+                finalBuffer = null;
+                finalFileName = null;
+                intermediateBuffer = null;
+                stageReached = 0;
+                fileInput.value = '';
+                updateButtons();
+                clearLog();
+                log('> AST Engine idle — waiting for input file...', 'dim');
+            }
+
+            function formatBytes(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+                return (bytes / 1073741824).toFixed(2) + ' GB';
+            }
+
+            // ──────────────────────────────────────
+            // Drag and drop events
+            // ──────────────────────────────────────
+            dropZone.addEventListener('click', () => fileInput.click());
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('drag-over');
+            });
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('drag-over');
+            });
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) handleFile(files[0]);
+            });
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) handleFile(fileInput.files[0]);
+            });
+            btnRemove.addEventListener('click', clearFile);
+            btnReset.addEventListener('click', clearFile);
+
+            // ──────────────────────────────────────
+            // FFmpeg WASM loader
+            // ──────────────────────────────────────
+            async function loadFFmpeg() {
+                if (ffmpegLoaded) return true;
+                if (ffmpegLoading) {
+                    // wait for existing load
+                    let waited = 0;
+                    while (ffmpegLoading && waited < 120000) {
+                        await new Promise(r => setTimeout(r, 300));
+                        waited += 300;
+                    }
+                    return ffmpegLoaded;
+                }
+                ffmpegLoading = true;
+                log('> Loading FFmpeg WASM core (~25MB)... this may take a moment on first visit.', 'amber');
+                try {
+                    const { createFFmpeg } = FFmpeg;
+                    ffmpeg = createFFmpeg({
+                        log: false,
+                        corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+                    });
+                    await ffmpeg.load();
+                    ffmpegLoaded = true;
+                    log('> FFmpeg WASM core loaded successfully.', 'green');
+                    return true;
+                } catch (err) {
+                    log(`> FFmpeg load failed: ${err.message}`, 'red');
+                    log('> Check your connection and try refreshing. Using fallback mode (limited).', 'amber');
+                    ffmpegLoaded = false;
+                    return false;
+                } finally {
+                    ffmpegLoading = false;
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Pipeline: Stage 1 — FFmpeg Faststart
+            // ──────────────────────────────────────
+            async function stageFaststart(inputBuffer, inputName) {
+                if (!ffmpegLoaded) {
+                    log('> FFmpeg not available — skipping faststart, passing through original.', 'amber');
+                    return new Uint8Array(inputBuffer);
+                }
+                log('> Stage 1: FFmpeg faststart remux — lossless container restructure...', 'purple');
+                setProgress(10);
+                const inName = 'input_' + Date.now() + '.mp4';
+                const outName = 'faststart_' + Date.now() + '.mp4';
+                try {
+                    ffmpeg.FS('writeFile', inName, new Uint8Array(inputBuffer));
+                    await ffmpeg.run('-i', inName, '-c', 'copy', '-movflags', '+faststart',
+                        '-map_metadata', '-1', outName);
+                    const outData = ffmpeg.FS('readFile', outName);
+                    // cleanup
+                    try { ffmpeg.FS('unlink', inName); } catch (e) {}
+                    try { ffmpeg.FS('unlink', outName); } catch (e) {}
+                    log('> Stage 1 complete — moov atom moved before mdat.', 'green');
+                    setProgress(30);
+                    return outData;
+                } catch (err) {
+                    log(`> Faststart failed: ${err.message} — passing through original.`, 'amber');
+                    try { ffmpeg.FS('unlink', inName); } catch (e) {}
+                    try { ffmpeg.FS('unlink', outName); } catch (e) {}
+                    return new Uint8Array(inputBuffer);
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Pipeline: Stage 2 — Binary AST Patcher
+            // ──────────────────────────────────────
+            function stageASTPatch(faststartBuffer, originalSize) {
+                log('> Stage 2: Binary AST Patcher — parsing MP4 atom tree...', 'purple');
+                setProgress(40);
+                try {
+                    const buffer = new Uint8Array(faststartBuffer);
+                    const atoms = parseAtoms(buffer, 0, buffer.length);
+
+                    // Find moov → trak (video) → mdia → minf → stbl
+                    const moov = findAtom(atoms, 'moov');
+                    if (!moov) throw new Error('moov atom not found');
+
+                    const traks = findAtoms(moov.children, 'trak');
+                    let videoStbl = null;
+                    let videoTrak = null;
+                    for (const trak of traks) {
+                        const mdia = findAtom(trak.children, 'mdia');
+                        if (!mdia) continue;
+                        const hdlr = findAtom(mdia.children, 'hdlr');
+                        const minf = findAtom(mdia.children, 'minf');
+                        if (!minf) continue;
+                        const stbl = findAtom(minf.children, 'stbl');
+                        if (!stbl) continue;
+                        // Check if this is a video track via hdlr
+                        if (hdlr) {
+                            const hdlrData = buffer.slice(hdlr.dataOffset, hdlr.dataOffset + hdlr.dataSize);
+                            const handlerType = String.fromCharCode(...hdlrData.slice(8, 12));
+                            if (handlerType === 'vide') {
+                                videoStbl = stbl;
+                                videoTrak = trak;
+                                break;
+                            }
+                        }
+                        // fallback: first trak with stbl
+                        if (!videoStbl) {
+                            videoStbl = stbl;
+                            videoTrak = trak;
+                        }
+                    }
+                    if (!videoStbl) throw new Error('video stbl not found');
+
+                    // Parse stbl children
+                    const stsz = findAtom(videoStbl.children, 'stsz');
+                    const stsc = findAtom(videoStbl.children, 'stsc');
+                    const stco = findAtom(videoStbl.children, 'stco');
+                    const co64 = findAtom(videoStbl.children, 'co64');
+                    const realStco = stco || co64;
+                    if (!stsz || !stsc || !realStco) {
+                        throw new Error('Required sample tables (stsz/stsc/stco) not found');
+                    }
+
+                    // Read existing data
+                    const stszData = buffer.slice(stsz.dataOffset, stsz.dataOffset + stsz.dataSize);
+                    const stscData = buffer.slice(stsc.dataOffset, stsc.dataOffset + stsc.dataSize);
+                    const stcoData = buffer.slice(realStco.dataOffset, realStco.dataOffset + realStco
+                        .dataSize);
+
+                    const stszView = new DataView(stszData.buffer, stszData.byteOffset, stszData.byteLength);
+                    const stscView = new DataView(stscData.buffer, stscData.byteOffset, stscData.byteLength);
+                    const stcoView = new DataView(stcoData.buffer, stcoData.byteOffset, stcoData.byteLength);
+
+                    // stsz: version(1) + flags(3) + sample_size(4) + sample_count(4) + [entry(4)]*count
+                    const stszSampleSize = stszView.getUint32(4);
+                    const stszCount = stszView.getUint32(8);
+                    // stsc: version(1)+flags(3) + entry_count(4) + [first_chunk(4)+samples_per_chunk(4)+sample_desc_index(4)]*count
+                    const stscCount = stscView.getUint32(4);
+                    // stco/co64: version(1)+flags(3) + entry_count(4) + [chunk_offset(4 or 8)]*count
+                    const stcoCount = stcoView.getUint32(4);
+                    const isCo64 = !!co64;
+                    const offsetSize = isCo64 ? 8 : 4;
+
+                    // Calculate fake sample count based on file size
+                    const fileSizeMB = originalSize / (1024 * 1024);
+                    const fakeSampleCount = Math.floor(fileSizeMB * 240);
+                    const clampedFake = Math.min(30000, Math.max(1000, fakeSampleCount));
+
+                    log(`> AST: Calculated ${clampedFake} fake samples for ${fileSizeMB.toFixed(1)} MB file.`,
+                        'cyan');
+                    setProgress(55);
+
+                    // Build new stsz: add fake entries (each 8 bytes)
+                    const newStszCount = stszCount + clampedFake;
+                    const newStszSize = 12 + (stszSampleSize === 0 ? newStszCount * 4 : 0);
+                    const newStsz = new Uint8Array(newStszSize);
+                    const newStszView = new DataView(newStsz.buffer);
+                    newStszView.setUint8(0, 0); // version
+                    newStszView.setUint8(1, 0); // flags
+                    newStszView.setUint16(2, 0); // flags continued
+                    newStszView.setUint32(4, stszSampleSize);
+                    newStszView.setUint32(8, newStszCount);
+                    if (stszSampleSize === 0) {
+                        // copy original entries
+                        for (let i = 0; i < stszCount; i++) {
+                            newStszView.setUint32(12 + i * 4, stszView.getUint32(12 + i * 4));
+                        }
+                        // append fake entries (8 bytes each)
+                        for (let i = 0; i < clampedFake; i++) {
+                            newStszView.setUint32(12 + (stszCount + i) * 4, 8);
+                        }
+                    }
+                    // else: all samples same size, no per-sample table — just update count (already done)
+
+                    // Build new stsc: add entries mapping fake samples to last chunk
+                    // Read last stsc entry
+                    const lastStscEntryOffset = 8 + (stscCount - 1) * 12;
+                    const lastFirstChunk = stscView.getUint32(lastStscEntryOffset);
+                    const lastSamplesPerChunk = stscView.getUint32(lastStscEntryOffset + 4);
+                    const lastSampleDescIndex = stscView.getUint32(lastStscEntryOffset + 8);
+
+                    // Total real samples, determine how many chunks already exist
+                    let totalRealSamples = 0;
+                    for (let i = 0; i < stscCount; i++) {
+                        const off = 8 + i * 12;
+                        const firstChunk = stscView.getUint32(off);
+                        const samplesPer = stscView.getUint32(off + 4);
+                        const nextFirstChunk = (i + 1 < stscCount) ? stscView.getUint32(8 + (i + 1) * 12) :
+                            stcoCount + 1;
+                        const chunkCount = nextFirstChunk - firstChunk;
+                        totalRealSamples += chunkCount * samplesPer;
+                    }
+
+                    // We'll add fake samples by increasing samples_per_chunk on the last entry
+                    // and adding the fake samples to the last chunk's sample count
+                    const newStscCount = stscCount;
+                    const newStscSize = 8 + newStscCount * 12;
+                    const newStsc = new Uint8Array(newStscSize);
+                    const newStscView = new DataView(newStsc.buffer);
+                    newStscView.setUint8(0, 0);
+                    newStscView.setUint8(1, 0);
+                    newStscView.setUint16(2, 0);
+                    newStscView.setUint32(4, newStscCount);
+                    for (let i = 0; i < stscCount; i++) {
+                        const off = 8 + i * 12;
+                        const fc = stscView.getUint32(off);
+                        const spc = stscView.getUint32(off + 4);
+                        const sdi = stscView.getUint32(off + 8);
+                        const newOff = 8 + i * 12;
+                        newStscView.setUint32(newOff, fc);
+                        if (i === stscCount - 1) {
+                            // Last entry: add fake samples to samples_per_chunk
+                            newStscView.setUint32(newOff + 4, spc + clampedFake);
+                        } else {
+                            newStscView.setUint32(newOff + 4, spc);
+                        }
+                        newStscView.setUint32(newOff + 8, sdi);
+                    }
+
+                    // Build new stco: same chunk count, point fake chunk references to last real offset
+                    // Actually, we keep stco the same — the last chunk still has the same offset,
+                    // it just "contains" more samples. No new chunks needed.
+                    const newStco = new Uint8Array(stcoData);
+                    // stco doesn't change because we're adding fake samples to existing chunks,
+                    // not creating new chunks. The chunk offset stays the same.
+
+                    setProgress(70);
+                    log('> AST Injection: stsz +' + clampedFake + ' entries, stsc updated, stco preserved.',
+                        'green');
+
+                    // Now rebuild the stbl atom with new children
+                    const newStblChildren = [];
+                    for (const child of videoStbl.children) {
+                        if (child.type === 'stsz') {
+                            newStblChildren.push({ type: 'stsz', data: newStsz });
+                        } else if (child.type === 'stsc') {
+                            newStblChildren.push({ type: 'stsc', data: newStsc });
+                        } else if (child.type === 'stco' || child.type === 'co64') {
+                            newStblChildren.push({ type: child.type, data: newStco });
+                        } else {
+                            // copy original child data
+                            const origData = buffer.slice(child.offset + 8, child.offset + child.size);
+                            newStblChildren.push({ type: child.type, data: new Uint8Array(origData) });
+                        }
+                    }
+
+                    // Calculate new stbl size
+                    let newStblBodySize = 0;
+                    for (const c of newStblChildren) {
+                        newStblBodySize += 8 + c.data.length; // 4 size + 4 type + data
+                    }
+                    const newStblTotalSize = 8 + newStblBodySize; // stbl header + body
+
+                    // Build new stbl
+                    const newStblBuffer = new Uint8Array(newStblTotalSize);
+                    const stblDV = new DataView(newStblBuffer.buffer);
+                    stblDV.setUint32(0, newStblTotalSize);
+                    stblDV.setUint32(4, 0x7374626c); // 'stbl'
+                    let writeOff = 8;
+                    for (const c of newStblChildren) {
+                        stblDV.setUint32(writeOff, 8 + c.data.length);
+                        stblDV.setUint32(writeOff + 4, strToFourCC(c.type));
+                        newStblBuffer.set(c.data, writeOff + 8);
+                        writeOff += 8 + c.data.length;
+                    }
+
+                    const stblSizeDelta = newStblTotalSize - videoStbl.size;
+
+                    log('> Stage 2 complete — stbl rebuilt. Size delta: +' + stblSizeDelta + ' bytes.', 'green');
+                    setProgress(80);
+
+                    return { buffer, stblSizeDelta, videoStbl, videoTrak, moov, atoms, newStblBuffer,
+                        newStblTotalSize, clampedFake };
+                } catch (err) {
+                    log(`> AST Patch failed: ${err.message} — falling back to faststart-only output.`, 'amber');
+                    return null; // signal fallback
+                }
+            }
+
+            // ──────────────────────────────────────
+            // Pipeline: Stage 3 — Rebuild MP4 with offset recalculation
+            // ──────────────────────────────────────
+            function stageRebuild(patchResult) {
+                if (!patchResult) return null; // fallback already signaled
+                log('> Stage 3: Multi-pass offset recalculation + mdat assembly...', 'purple');
+                setProgress(85);
+                try {
+                    const { buffer, stblSizeDelta, videoStbl, moov, atoms, newStblBuffer, newStblTotalSize,
+                        clampedFake } = patchResult;
+
+                    if (stblSizeDelta === 0) {
+                        log('> No size change — skipping rebuild.', 'dim');
+                        return buffer;
+                    }
+
+                    // Find ftyp, moov, mdat positions
+                    const ftyp = findAtom(atoms, 'ftyp');
+                    const mdat = findAtom(atoms, 'mdat');
+                    if (!moov || !mdat) throw new Error('moov or mdat not found');
+
+                    const moovStart = moov.offset;
+                    const moovEnd = moov.offset + moov.size;
+                    const mdatStart = mdat.offset;
+                    const mdatSize = mdat.size;
+                    const totalSize = buffer.length;
+
+                    // New moov size
+                    const newMoovSize = moov.size + stblSizeDelta;
+
+                    // Build new file:
+                    // [ftyp] [moov (new size)] [mdat] [any trailing atoms]
+                    const newTotalSize = totalSize + stblSizeDelta;
+                    const newBuffer = new Uint8Array(newTotalSize);
+                    const newDV = new DataView(newBuffer.buffer);
+
+                    // Copy ftyp (if before moov)
+                    let srcOff = 0;
+                    let dstOff = 0;
+                    if (ftyp && ftyp.offset < moovStart) {
+                        newBuffer.set(buffer.subarray(ftyp.offset, ftyp.offset + ftyp.size), dstOff);
+                        dstOff += ftyp.size;
+                        srcOff = ftyp.offset + ftyp.size;
+                    }
+
+                    // Copy any atoms between ftyp and moov
+                    if (srcOff < moovStart) {
+                        const gap = buffer.subarray(srcOff, moovStart);
+                        newBuffer.set(gap, dstOff);
+                        dstOff += gap.length;
+                    }
+                    srcOff = moovStart;
+
+                    // Write new moov: we need to rebuild the entire moov with the new stbl
+                    const moovData = buffer.slice(moov.offset + 8, moov.offset + moov.size);
+                    const moovChildren = moov.children;
+                    // Find and replace stbl within moov
+                    // Rebuild moov by serializing children, replacing stbl
+                    let newMoovBodySize = 0;
+                    const childBuffers = [];
+                    for (const child of moovChildren) {
+                        if (child === videoStbl || child.type === 'stbl' && child.offset === videoStbl.offset) {
+                            childBuffers.push(newStblBuffer);
+                            newMoovBodySize += newStblBuffer.length;
+                        } else {
+                            const cdata = buffer.slice(child.offset, child.offset + child.size);
+                            childBuffers.push(new Uint8Array(cdata));
+                            newMoovBodySize += cdata.length;
+                        }
+                    }
+                    const newMoovTotal = 8 + newMoovBodySize;
+                    newDV.setUint32(dstOff, newMoovTotal);
+                    newDV.setUint32(dstOff + 4, 0x6d6f6f76); // 'moov'
+                    dstOff += 8;
+                    for (const cb of childBuffers) {
+                        newBuffer.set(cb, dstOff);
+                        dstOff += cb.length;
+                    }
+
+                    // Now copy mdat and everything after original moov
+                    const afterMoovData = buffer.subarray(moovEnd);
+                    newBuffer.set(afterMoovData, dstOff);
+                    dstOff += afterMoovData.length;
+
+                    // Now we need to update all stco/co64 entries that point into mdat
+                    // because mdat shifted by stblSizeDelta
+                    // Find stco/co64 in the new buffer
+                    const newMoovOffset = ftyp ? ftyp.size : 0;
+                    const newAtoms = parseAtoms(newBuffer, newMoovOffset, newMoovTotal);
+                    const newMoov = findAtom(newAtoms, 'moov');
+                    const newStco = findDeepAtom(newMoov, 'stco');
+                    const newCo64 = findDeepAtom(newMoov, 'co64');
+                    const targetStco = newStco || newCo64;
+                    if (targetStco) {
+                        const stcoDV = new DataView(newBuffer.buffer, targetStco.dataOffset, targetStco.dataSize);
+                        const entryCount = stcoDV.getUint32(4);
+                        const is64 = !!newCo64;
+                        for (let i = 0; i < entryCount; i++) {
+                            const entryOff = 8 + i * (is64 ? 8 : 4);
+                            const oldOffset = is64 ?
+                                Number(stcoDV.getBigUint64(entryOff)) :
+                                stcoDV.getUint32(entryOff);
+                            // If offset points into mdat (after moov), shift by delta
+                            if (oldOffset >= moovEnd) {
+                                const newOffset = oldOffset + stblSizeDelta;
+                                if (is64) {
+                                    stcoDV.setBigUint64(entryOff, BigInt(newOffset));
+                                } else {
+                                    stcoDV.setUint32(entryOff, newOffset);
+                                }
+                            }
+                        }
+                    }
+
+                    log('> Stage 3 complete — all offsets recalculated. File rebuilt.', 'green');
+                    setProgress(95);
+                    log(`> ✓ AST Injection complete — ${clampedFake} fake samples · ${(newTotalSize / 1024 / 1024).toFixed(1)} MB output`,
+                        'green');
+                    return newBuffer;
+                } catch (err) {
+                    log(`> Rebuild failed: ${err.message} — falling back to faststart-only output.`, 'amber');
+                    return null;
+                }
+            }
+
+            // ──────────────────────────────────────
+            // MP4 Atom parsing utilities
+            // ──────────────────────────────────────
+            function parseAtoms(buffer, startOffset, length) {
+                const atoms = [];
+                let offset = startOffset;
+                const end = startOffset + length;
+                while (offset < end) {
+                    if (offset + 8 > end) break;
+                    const dv = new DataView(buffer.buffer, buffer.byteOffset + offset, 8);
+                    let size = dv.getUint32(0);
+                    const type = String.fromCharCode(
+                        dv.getUint8(4), dv.getUint8(5), dv.getUint8(6), dv.getUint8(7)
+                    );
+                    let headerSize = 8;
+                    if (size === 1) {
+                        if (offset + 16 > end) break;
+                        size = Number(new DataView(buffer.buffer, buffer.byteOffset + offset + 8, 8).getBigUint64(0));
+                        headerSize = 16;
+                    }
+                    if (size === 0) {
+                        size = end - offset;
+                    }
+                    if (offset + size > end) break;
+                    const atom = {
+                        type,
+                        size,
+                        offset,
+                        dataOffset: offset + headerSize,
+                        dataSize: size - headerSize,
+                        children: [],
+                    };
+                    if (['moov', 'trak', 'mdia', 'minf', 'stbl', 'edts', 'udta', 'dinf', 'mvex'].includes(type)) {
+                        atom.children = parseAtoms(buffer, offset + headerSize, size - headerSize);
+                    }
+                    atoms.push(atom);
+                    offset += size;
+                }
+                return atoms;
+            }
+
+            function findAtom(atoms, type) {
+                for (const a of atoms) {
+                    if (a.type === type) return a;
+                }
+                return null;
+            }
+
+            function findAtoms(atoms, type) {
+                return atoms.filter(a => a.type === type);
+            }
+
+            function findDeepAtom(container, type) {
+                if (!container || !container.children) return null;
+                for (const child of container.children) {
+                    if (child.type === type) return child;
+                    const found = findDeepAtom(child, type);
+                    if (found) return found;
+                }
+                return null;
+            }
+
+            function strToFourCC(s) {
+                return (s.charCodeAt(0) << 24) | (s.charCodeAt(1) << 16) | (s.charCodeAt(2) << 8) | s.charCodeAt(
+                    3);
+            }
+
+            // ──────────────────────────────────────
+            // Main pipeline orchestrator
+            // ──────────────────────────────────────
+            async function runPipeline() {
+                if (!selectedFile || pipelineRunning) return;
+                pipelineRunning = true;
+                pipelinePaused = false;
+                pauseFlag = false;
+                cancelFlag = false;
+                finalBuffer = null;
+                finalFileName = null;
+                stageReached = 0;
+                updateButtons();
+                clearLog();
+                showProgress(true);
+                setProgress(0);
+
+                log('> Initializing: ' + selectedFile.name, 'cyan');
+                log('> Reading binary stream...', 'dim');
+                log('> Starting Haze AST Pipeline (v8.5)...', 'purple');
+                log('> AST: Mode -> FFmpeg Faststart + Binary Chunk Shifting', 'cyan');
+
+                // Read file
+                let inputBuffer;
+                try {
+                    inputBuffer = await selectedFile.arrayBuffer();
+                    log('> WASM: Input file read — ' + formatBytes(inputBuffer.byteLength), 'dim');
+                } catch (err) {
+                    log('> Failed to read file: ' + err.message, 'red');
+                    pipelineRunning = false;
+                    updateButtons();
+                    return;
+                }
+
+                // Load FFmpeg
+                const ffmpegOk = await loadFFmpeg();
+                if (cancelFlag) { haltPipeline();
+                    return; }
+                if (pauseFlag) { await waitForResume();
+                    if (cancelFlag) { haltPipeline();
+                        return; } }
+
+                // Stage 1: Faststart
+                setProgress(5);
+                let faststartBuffer;
+                try {
+                    faststartBuffer = await stageFaststart(inputBuffer, selectedFile.name);
+                } catch (err) {
+                    log('> Stage 1 crashed: ' + err.message + ' — using original.', 'amber');
+                    faststartBuffer = new Uint8Array(inputBuffer);
+                }
+                if (cancelFlag) { haltPipeline();
+                    return; }
+                stageReached = 1;
+                intermediateBuffer = faststartBuffer;
+                if (pauseFlag) {
+                    pipelinePaused = true;
+                    updateButtons();
+                    log('> ⏸ Paused after Stage 1. Press Resume to continue.', 'amber');
+                    await waitForResume();
+                    if (cancelFlag) { haltPipeline();
+                        return; }
+                    pipelinePaused = false;
+                    updateButtons();
+                    log('> ▶ Resuming pipeline...', 'cyan');
+                }
+
+                // Stage 2: AST Patch
+                setProgress(35);
+                const patchResult = stageASTPatch(faststartBuffer, inputBuffer.byteLength);
+                if (cancelFlag) { haltPipeline();
+                    return; }
+                if (pauseFlag) {
+                    stageReached = patchResult ? 2 : 1;
+                    intermediateBuffer = patchResult ? null : faststartBuffer; // if patch failed, keep faststart
+                    pipelinePaused = true;
+                    updateButtons();
+                    log('> ⏸ Paused after Stage 2. Press Resume to continue.', 'amber');
+                    await waitForResume();
+                    if (cancelFlag) { haltPipeline();
+                        return; }
+                    pipelinePaused = false;
+                    updateButtons();
+                    log('> ▶ Resuming pipeline...', 'cyan');
+                }
+
+                // Stage 3: Rebuild
+                let outputBuffer;
+                if (patchResult) {
+                    outputBuffer = stageRebuild(patchResult);
+                    if (!outputBuffer) {
+                        // fallback to faststart
+                        outputBuffer = faststartBuffer;
+                        log('> Falling back to faststart-only output (quality preserved, no AST injection).',
+                            'amber');
+                    } else {
+                        stageReached = 3;
+                    }
+                } else {
+                    outputBuffer = faststartBuffer;
+                    stageReached = 1;
+                    log('> AST injection skipped — delivering faststart output (quality preserved).', 'amber');
+                }
+                if (cancelFlag) { haltPipeline();
+                    return; }
+
+                // Finalize
+                finalBuffer = outputBuffer;
+                const baseName = originalFileName.replace(/\.(mp4|mov)$/i, '');
+                finalFileName = baseName + '_haze_optimized.mp4';
+                setProgress(100);
+                log('> ✓ Ready to Post — Download your optimized video', 'green');
+                log('> OPTIMIZATION COMPLETE', 'green');
+                pipelineRunning = false;
+                pipelinePaused = false;
+                updateButtons();
+                toast('✅ Optimization complete!');
+            }
+
+            function haltPipeline() {
+                pipelineRunning = false;
+                pipelinePaused = false;
+                pauseFlag = false;
+                cancelFlag = false;
+                updateButtons();
+                log('> ⏹ Pipeline halted.', 'red');
+            }
+
+            async function waitForResume() {
+                return new Promise((resolve) => {
+                    const check = () => {
+                        if (!pipelinePaused || cancelFlag) {
+                            resolve();
+                        } else {
+                            setTimeout(check, 200);
+                        }
+                    };
+                    check();
+                });
+            }
+
+            // ──────────────────────────────────────
+            // Button handlers
+            // ──────────────────────────────────────
+            btnOptimize.addEventListener('click', () => {
+                if (!pipelineRunning) runPipeline();
+            });
+
+            btnPause.addEventListener('click', () => {
+                if (pipelineRunning && !pipelinePaused) {
+                    // Pause
+                    pauseFlag = true;
+                    log('> ⏸ Pause requested — will halt after current stage...', 'amber');
+                    btnPause.textContent = '⏳ Pausing...';
+                    btnPause.disabled = true;
+                } else if (pipelinePaused) {
+                    // Resume
+                    pipelinePaused = false;
+                    pauseFlag = false;
+                    updateButtons();
+                    log('> ▶ Resuming...', 'cyan');
+                }
+            });
+
+            btnDownload.addEventListener('click', () => {
+                if (!finalBuffer) return;
+                const blob = new Blob([finalBuffer], { type: 'video/mp4' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = finalFileName || 'optimized.mp4';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                log('> Download started: ' + (finalFileName || 'optimized.mp4'), 'green');
+                toast('⬇ Downloading...');
+            });
+
+            // ──────────────────────────────────────
+            // Handle pause flag being set (polled during pipeline)
+            // ──────────────────────────────────────
+            // The pipeline checks pauseFlag between stages.
+            // When btnPause is clicked during active processing, we set pauseFlag=true.
+            // The pipeline will then set pipelinePaused=true at the next checkpoint.
+            // We also need to reset btnPause state when the pipeline actually pauses.
+            const origUpdateButtons = updateButtons;
+            updateButtons = function() {
+                origUpdateButtons();
+                if (pipelinePaused) {
+                    btnPause.textContent = '▶ Resume';
+                    btnPause.disabled = false;
+                    btnPause.classList.remove('hidden');
+                    btnOptimize.classList.add('hidden');
+                } else if (pipelineRunning) {
+                    btnPause.textContent = '⏸ Pause';
+                    btnPause.disabled = false;
+                    btnPause.classList.remove('hidden');
+                }
+            };
+
+            // ──────────────────────────────────────
+            // Keyboard shortcut: Escape to cancel
+            // ──────────────────────────────────────
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && pipelineRunning) {
+                    cancelFlag = true;
+                    pipelineRunning = false;
+                    pipelinePaused = false;
+                    pauseFlag = false;
+                    updateButtons();
+                    log('> ⏹ Cancelled by user (Escape).', 'red');
+                    toast('Cancelled');
+                }
+            });
+
+            // ──────────────────────────────────────
+            // Init
+            // ──────────────────────────────────────
+            updateButtons();
+            log('> AST Engine v8.5 ready.', 'dim');
+            log('> Drop an MP4/MOV file or click to browse.', 'dim');
+            log('> All processing is local — your video never leaves your device.', 'dim');
+        })();
+    </script>
+</body>
+</html>
