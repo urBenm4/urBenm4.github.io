@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Poulfyy AST Protocol v8.7 — Fixed</title>
+    <title>Poulfyy AST Protocol v9.0 — FFmpeg + Binary Patcher</title>
     <style>
         :root {
             --bg: #0b0b14; --surface: #14142b; --surface2: #1a1a35; --border: #252545;
@@ -50,6 +50,8 @@
         .btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
         .btn-primary { background: linear-gradient(135deg, #7c3aed, #5b21b6); color: #fff; border-color: #8b5cf6; box-shadow: 0 0 16px rgba(124,58,237,0.3); }
         .btn-primary:hover:not(:disabled) { box-shadow: 0 0 28px rgba(124,58,237,0.5); transform: translateY(-1px); }
+        .btn-pause { background: var(--surface2); color: var(--amber); border-color: rgba(245,158,11,0.4); }
+        .btn-pause:hover:not(:disabled) { border-color: var(--amber); box-shadow: 0 0 14px rgba(245,158,11,0.25); }
         .btn-download { background: linear-gradient(135deg, #059669, #047857); color: #fff; border-color: #10b981; box-shadow: 0 0 16px rgba(16,185,129,0.3); }
         .btn-download:hover:not(:disabled) { box-shadow: 0 0 28px rgba(16,185,129,0.5); transform: translateY(-1px); }
         .btn-reset { background: var(--surface2); color: var(--text2); border-color: var(--border); }
@@ -73,15 +75,15 @@
 <body>
     <div class="app">
         <div class="header">
-            <span class="badge">Pure JS · No CDN · v8.7</span>
+            <span class="badge">FFmpeg WASM + Binary AST v9.0</span>
             <h1>Poulfyy AST Protocol</h1>
-            <p class="sub">Real mdat injection — spec‑compliant MP4, fully playable</p>
+            <p class="sub">FFmpeg faststart remux → Binary sample injection → Offset recalculation</p>
         </div>
 
         <div class="drop-zone" id="dropZone">
             <div class="icon">📁</div>
             <div class="title">Drop Video Here or Click to Browse</div>
-            <div class="hint">MP4 / MOV · H.264 or HEVC · Works offline, no upload</div>
+            <div class="hint">MP4 / MOV · H.264 or HEVC · FFmpeg-powered faststart</div>
             <input type="file" id="fileInput" accept="video/mp4,video/quicktime,.mp4,.mov">
         </div>
 
@@ -93,6 +95,7 @@
 
         <div class="btn-row">
             <button class="btn btn-primary" id="btnOptimize" disabled>⚡ Optimize</button>
+            <button class="btn btn-pause hidden" id="btnPause">⏸ Pause</button>
             <button class="btn btn-download hidden" id="btnDownload">⬇ Download</button>
             <button class="btn btn-reset hidden" id="btnReset">↻ New File</button>
         </div>
@@ -102,17 +105,22 @@
         </div>
 
         <div class="log-panel" id="logPanel">
-            <div class="line dim">> AST Engine v8.7 idle — waiting for input file...</div>
+            <div class="line dim">> AST Engine v9.0 idle — waiting for input file...</div>
             <div class="line dim cursor">_</div>
         </div>
 
         <div class="info-card">
-            <h3>⚙ Real mdat Injection — Fixed v8.7</h3>
-            <p>Parses MP4 atom tree → identifies video <code>stbl</code> via <code>hdlr</code> handler type → injects fake H.264 filler samples into <code>mdat</code> → updates <code>stsz/stsc/stco</code> with valid pointers → rebuilds container with corrected offsets. <strong>Output is a spec‑compliant, playable MP4.</strong></p>
+            <h3>⚙ FFmpeg + Binary AST Pipeline</h3>
+            <p><strong>Stage 1:</strong> <code>ffmpeg -c copy -movflags +faststart</code> via WebAssembly — lossless container restructure using battle-tested C code. Zero quality loss.</p>
+            <p><strong>Stage 2:</strong> Binary AST Patcher injects fake H.264 filler samples into <code>mdat</code> + updates <code>stsz/stsc/stco</code>.</p>
+            <p><strong>Stage 3:</strong> Multi-pass offset recalculation. If FFmpeg can't load, falls back to delivering your original file untouched.</p>
         </div>
     </div>
 
     <div id="toastContainer"></div>
+
+    <!-- FFmpeg WASM -->
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.js"></script>
 
     <script>
         (function() {
@@ -123,6 +131,7 @@
             const fileSize = document.getElementById('fileSize');
             const btnRemove = document.getElementById('btnRemove');
             const btnOptimize = document.getElementById('btnOptimize');
+            const btnPause = document.getElementById('btnPause');
             const btnDownload = document.getElementById('btnDownload');
             const btnReset = document.getElementById('btnReset');
             const logPanel = document.getElementById('logPanel');
@@ -135,6 +144,13 @@
             let finalBuffer = null;
             let finalFileName = null;
             let originalFileName = null;
+            let ffmpeg = null;
+            let ffmpegReady = false;
+            let pipelineRunning = false;
+            let pipelinePaused = false;
+            let pauseFlag = false;
+            let cancelFlag = false;
+            let faststartBuffer = null;
 
             function toast(msg) { const el = document.createElement('div');
                 el.className = 'toast';
@@ -163,12 +179,16 @@
             function updateButtons() {
                 const hasFile = !!selectedFile;
                 const hasOutput = !!finalBuffer;
-                btnOptimize.disabled = !hasFile || hasOutput;
-                btnOptimize.classList.toggle('hidden', hasOutput);
+                const isProcessing = pipelineRunning && !pipelinePaused;
+                const isPaused = pipelinePaused;
+                btnOptimize.disabled = !hasFile || isProcessing || hasOutput;
+                btnOptimize.classList.toggle('hidden', hasOutput || isProcessing);
+                btnPause.classList.toggle('hidden', !isProcessing && !isPaused);
+                btnPause.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
                 btnDownload.classList.toggle('hidden', !hasOutput);
                 btnReset.classList.toggle('hidden', !hasFile && !hasOutput);
                 fileInfo.classList.toggle('hidden', !hasFile);
-                showProgress(false);
+                showProgress(isProcessing || isPaused);
                 if (hasOutput) btnOptimize.classList.add('hidden');
             }
 
@@ -184,6 +204,11 @@
                 finalBuffer = null;
                 originalBuffer = null;
                 finalFileName = null;
+                faststartBuffer = null;
+                pipelineRunning = false;
+                pipelinePaused = false;
+                pauseFlag = false;
+                cancelFlag = false;
                 updateButtons();
                 clearLog();
                 log('> File loaded: ' + file.name + ' (' + formatBytes(file.size) + ')', 'cyan');
@@ -191,10 +216,14 @@
             }
 
             function clearFile() {
+                if (pipelineRunning) { cancelFlag = true;
+                    pipelineRunning = false;
+                    pipelinePaused = false; }
                 selectedFile = null;
                 originalBuffer = null;
                 finalBuffer = null;
                 finalFileName = null;
+                faststartBuffer = null;
                 fileInput.value = '';
                 updateButtons();
                 clearLog();
@@ -223,7 +252,77 @@
             btnReset.addEventListener('click', clearFile);
 
             // ═══════════════════════════════════════
-            //  PROVEN PARSER (from diagnostic — works)
+            //  FFMPEG WASM LOADER
+            // ═══════════════════════════════════════
+            async function loadFFmpeg() {
+                if (ffmpegReady) return true;
+                log('> Loading FFmpeg WASM core (~31MB)... first visit may take a moment.', 'amber');
+                setProgress(2);
+                try {
+                    const { FFmpeg } = FFmpegWASM;
+                    ffmpeg = new FFmpeg();
+                    ffmpeg.on('log', ({ message }) => {
+                        // Quiet logging — uncomment to debug FFmpeg output
+                        // log('  [ffmpeg] ' + message, 'dim');
+                    });
+                    ffmpeg.on('progress', ({ progress }) => {
+                        if (pipelineRunning && !pipelinePaused) {
+                            const pct = 5 + progress * 20; // map 0-100 to 5-25% of our pipeline
+                            setProgress(Math.min(25, pct));
+                        }
+                    });
+                    await ffmpeg.load({
+                        coreURL: 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js',
+                    });
+                    ffmpegReady = true;
+                    log('> FFmpeg WASM core loaded successfully.', 'green');
+                    setProgress(5);
+                    return true;
+                } catch (err) {
+                    log('> FFmpeg failed to load: ' + err.message, 'red');
+                    log('> This usually means SharedArrayBuffer is not available.', 'amber');
+                    log('> To fix: serve this file via a local server instead of opening directly.', 'amber');
+                    log('>   python3 -m http.server 8000', 'cyan');
+                    log('>   npx serve .', 'cyan');
+                    log('> Will deliver original file untouched as fallback.', 'amber');
+                    ffmpegReady = false;
+                    return false;
+                }
+            }
+
+            // ═══════════════════════════════════════
+            //  STAGE 1: FFmpeg Faststart
+            // ═══════════════════════════════════════
+            async function ffmpegFaststart(inputBuffer) {
+                const inName = 'input_' + Date.now() + '.mp4';
+                const outName = 'faststart_' + Date.now() + '.mp4';
+                try {
+                    log('> Stage 1: FFmpeg faststart remux — lossless container restructure...', 'purple');
+                    await ffmpeg.writeFile(inName, new Uint8Array(inputBuffer));
+                    await ffmpeg.exec([
+                        '-i', inName,
+                        '-c', 'copy',
+                        '-movflags', '+faststart',
+                        '-map_metadata', '-1',
+                        outName
+                    ]);
+                    const outData = await ffmpeg.readFile(outName);
+                    // Cleanup
+                    try { await ffmpeg.deleteFile(inName); } catch (e) {}
+                    try { await ffmpeg.deleteFile(outName); } catch (e) {}
+                    log('> Stage 1 complete — moov atom moved before mdat (FFmpeg).', 'green');
+                    setProgress(25);
+                    return new Uint8Array(outData);
+                } catch (err) {
+                    log('> FFmpeg faststart error: ' + err.message, 'red');
+                    try { await ffmpeg.deleteFile(inName); } catch (e) {}
+                    try { await ffmpeg.deleteFile(outName); } catch (e) {}
+                    throw err;
+                }
+            }
+
+            // ═══════════════════════════════════════
+            //  MP4 PARSER (proven working from diagnostic)
             // ═══════════════════════════════════════
             function r32(b, o) { return (b[o] << 24) | (b[o + 1] << 16) | (b[o + 2] << 8) | b[o + 3]; }
 
@@ -280,8 +379,6 @@
                 return null;
             }
 
-            // Find the VIDEO track's stbl by reading the hdlr handler type
-            // Handler type is at offset +16 from box start (8 header + 8 into data)
             function findVideoStbl(buf, moov) {
                 const traks = moov.children.filter(b => b.type === 'trak');
                 for (const trak of traks) {
@@ -293,7 +390,6 @@
                     const stbl = findBox(minf.children, 'stbl');
                     if (!stbl) continue;
                     if (hdlr) {
-                        // hdlr: version(1)+flags(3)+component_subtype(4)=8 bytes, then handler_type(4)
                         const hTypeOff = hdlr.offset + hdlr.headerSize + 8;
                         if (hTypeOff + 4 <= hdlr.offset + hdlr.size) {
                             const hType = String.fromCharCode(buf[hTypeOff], buf[hTypeOff + 1], buf[hTypeOff + 2], buf[
@@ -301,62 +397,17 @@
                             if (hType === 'vide') return { stbl, trak, mdia, minf, hdlr };
                         }
                     }
-                    // Fallback: if no hdlr but stbl exists with stsd children containing vide-like entries, use it
                     if (!hdlr && stbl) return { stbl, trak, mdia, minf, hdlr: null };
                 }
                 return null;
             }
 
             // ═══════════════════════════════════════
-            //  STAGE 1: Faststart (if needed)
-            // ═══════════════════════════════════════
-            function faststart(buf) {
-                const boxes = parseBoxes(buf, 0, buf.length);
-                const moov = findBox(boxes, 'moov');
-                const mdat = findBox(boxes, 'mdat');
-                if (!moov || !mdat) return buf;
-                if (moov.offset < mdat.offset) {
-                    log('> moov already before mdat — faststart unnecessary.', 'dim');
-                    return buf;
-                }
-                log('> Relocating moov before mdat...', 'purple');
-                const before = buf.slice(0, moov.offset);
-                const moovData = buf.slice(moov.offset, moov.offset + moov.size);
-                const after = buf.slice(moov.offset + moov.size);
-                const out = new Uint8Array(buf.length);
-                let w = 0;
-                out.set(before, w);
-                w += before.length;
-                const newMoovOff = w;
-                out.set(moovData, w);
-                w += moovData.length;
-                out.set(after, w);
-                const delta = moov.offset - newMoovOff;
-                // Fix stco/co64 offsets
-                const newBoxes = parseBoxes(out, newMoovOff, newMoovOff + moov.size);
-                const newMoov = findBox(newBoxes, 'moov');
-                ['stco', 'co64'].forEach(tag => {
-                    const stcoBox = findDeep(newMoov, tag);
-                    if (!stcoBox) return;
-                    const dOff = stcoBox.dataStart;
-                    const count = r32(out, dOff);
-                    const is64 = tag === 'co64';
-                    for (let i = 0; i < count; i++) {
-                        const eOff = dOff + 4 + i * (is64 ? 8 : 4);
-                        const old = is64 ? r64(out, eOff) : r32(out, eOff);
-                        if (old >= moov.offset) { const nu = old - delta; if (is64) w64(out, eOff, nu);
-                            else w32(out, eOff, nu); }
-                    }
-                });
-                log('> Faststart complete.', 'green');
-                return out;
-            }
-
-            // ═══════════════════════════════════════
-            //  STAGE 2+3: Real mdat injection + rebuild
+            //  STAGE 2+3: Binary AST Injection + Rebuild
             // ═══════════════════════════════════════
             function injectAndRebuild(buf, origSize) {
-                log('> Parsing atom tree...', 'purple');
+                log('> Stage 2: Binary AST Patcher — parsing MP4 atom tree...', 'purple');
+                setProgress(30);
                 const boxes = parseBoxes(buf, 0, buf.length);
                 const moov = findBox(boxes, 'moov');
                 const mdat = findBox(boxes, 'mdat');
@@ -365,13 +416,13 @@
                 const vi = findVideoStbl(buf, moov);
                 if (!vi || !vi.stbl) throw new Error('video stbl not found');
                 const { stbl } = vi;
-                log('> Video stbl found @0x' + stbl.offset.toString(16) + ' with ' + stbl.children.length +
-                    ' children.', 'cyan');
+                log('> Video stbl found @0x' + stbl.offset.toString(16) + ' — ' + stbl.children.length + ' children.',
+                    'cyan');
 
                 const stsz = findBox(stbl.children, 'stsz');
                 const stsc = findBox(stbl.children, 'stsc');
                 const stco = findBox(stbl.children, 'stco') || findBox(stbl.children, 'co64');
-                if (!stsz || !stsc || !stco) throw new Error('stsz/stsc/stco missing from stbl');
+                if (!stsz || !stsc || !stco) throw new Error('stsz/stsc/stco missing');
 
                 const isCo64 = stco.type === 'co64';
                 const stszCount = r32(buf, stsz.dataStart + 4);
@@ -382,15 +433,15 @@
                 const fileMB = origSize / (1024 * 1024);
                 const nFake = Math.min(30000, Math.max(1000, Math.floor(fileMB * 240)));
                 const fakeBytes = nFake * 8;
-                log('> AST: ' + nFake + ' fake samples → ' + fakeBytes + ' bytes.', 'cyan');
-                setProgress(40);
+                log('> AST: Calculated ' + nFake + ' fake samples (' + fakeBytes + ' bytes).', 'cyan');
+                setProgress(45);
 
-                // ── New stsz ──
+                // Build new stsz
                 const newStszCount = stszCount + nFake;
                 const newStszEntryBytes = stszSampleSize === 0 ? 4 : 0;
-                const newStszLen = 12 + newStszCount * newStszEntryBytes;
-                const newStsz = new Uint8Array(8 + newStszLen);
-                w32(newStsz, 0, 8 + newStszLen);
+                const newStszDataLen = 12 + newStszCount * newStszEntryBytes;
+                const newStsz = new Uint8Array(8 + newStszDataLen);
+                w32(newStsz, 0, 8 + newStszDataLen);
                 newStsz[4] = 0x73;
                 newStsz[5] = 0x74;
                 newStsz[6] = 0x73;
@@ -403,10 +454,10 @@
                     for (let i = 0; i < nFake; i++) w32(newStsz, 20 + (stszCount + i) * 4, 8);
                 }
 
-                // ── New stsc ──
-                const newStscLen = 8 + stscCount * 12;
-                const newStsc = new Uint8Array(8 + newStscLen);
-                w32(newStsc, 0, 8 + newStscLen);
+                // Build new stsc
+                const newStscDataLen = 8 + stscCount * 12;
+                const newStsc = new Uint8Array(8 + newStscDataLen);
+                w32(newStsc, 0, 8 + newStscDataLen);
                 newStsc[4] = 0x73;
                 newStsc[5] = 0x74;
                 newStsc[6] = 0x73;
@@ -420,26 +471,23 @@
                     const sdi = r32(buf, sOff + 8);
                     const nOff = 16 + i * 12;
                     w32(newStsc, nOff, fc);
-                    // For the last entry, distribute fake samples across its chunks
                     if (i === stscCount - 1) {
-                        let nChunks;
-                        if (stscCount === 1) nChunks = stcoCount - fc + 1;
-                        else { const prevFc = r32(buf, stsc.dataStart + 4 + (i - 1) * 12);
-                            nChunks = fc - prevFc; if (nChunks <= 0) nChunks = stcoCount - fc + 1; }
+                        let nChunks = stscCount === 1 ? stcoCount - fc + 1 :
+                            fc - r32(buf, stsc.dataStart + 4 + (i - 1) * 12);
+                        if (nChunks <= 0) nChunks = stcoCount - fc + 1;
                         const totalNew = spc * nChunks + nFake;
-                        const newSpc = Math.ceil(totalNew / nChunks);
-                        w32(newStsc, nOff + 4, newSpc);
+                        w32(newStsc, nOff + 4, Math.ceil(totalNew / nChunks));
                     } else w32(newStsc, nOff + 4, spc);
                     w32(newStsc, nOff + 8, sdi);
                 }
 
-                // ── New stco: add fake chunk entries ──
+                // Build new stco
                 const fakeChunks = Math.min(20, Math.max(1, Math.ceil(nFake / 1000)));
                 const newStcoCount = stcoCount + fakeChunks;
                 const entrySize = isCo64 ? 8 : 4;
-                const newStcoLen = 8 + newStcoCount * entrySize;
-                const newStco = new Uint8Array(8 + newStcoLen);
-                w32(newStco, 0, 8 + newStcoLen);
+                const newStcoDataLen = 8 + newStcoCount * entrySize;
+                const newStco = new Uint8Array(8 + newStcoDataLen);
+                w32(newStco, 0, 8 + newStcoDataLen);
                 const stcoTag = isCo64 ? 0x636f3634 : 0x7374636f;
                 newStco[4] = (stcoTag >> 24) & 0xff;
                 newStco[5] = (stcoTag >> 16) & 0xff;
@@ -447,14 +495,13 @@
                 newStco[7] = stcoTag & 0xff;
                 w32(newStco, 8, 0);
                 w32(newStco, 12, newStcoCount);
-                // Copy original entries (offset values will be patched later)
                 const origEntries = buf.slice(stco.dataStart + 4, stco.dataStart + 4 + stcoCount * entrySize);
                 newStco.set(origEntries, 16);
 
                 setProgress(60);
-                log('> Injection tables built. Rebuilding stbl...', 'dim');
+                log('> AST Injection: stsz +' + nFake + ', stsc updated, stco +' + fakeChunks + ' chunks.', 'green');
 
-                // ── Build new stbl ──
+                // Build new stbl
                 const stblParts = [];
                 for (const child of stbl.children) {
                     if (child === stsz) stblParts.push(newStsz);
@@ -474,7 +521,7 @@
                 for (const p of stblParts) { newStbl.set(p, sw);
                     sw += p.length; }
 
-                // ── Build new moov ──
+                // Build new moov
                 const moovParts = [];
                 for (const child of moov.children) {
                     if (child === stbl || (child.type === 'stbl' && child.offset === stbl.offset)) moovParts.push(
@@ -493,7 +540,7 @@
                 for (const p of moovParts) { newMoov.set(p, mw);
                     mw += p.length; }
 
-                // ── Fake mdat data (H.264 filler NAL units) ──
+                // Fake H.264 filler data
                 const fakeData = new Uint8Array(fakeBytes);
                 for (let i = 0; i < nFake; i++) {
                     const b = i * 8;
@@ -507,7 +554,7 @@
                     fakeData[b + 7] = 0x00;
                 }
 
-                // ── Assemble final file ──
+                // Assemble final file
                 const beforeMoov = buf.slice(0, moov.offset);
                 const between = buf.slice(moov.offset + moov.size, mdat.offset);
                 const origMdat = buf.slice(mdat.offset, mdat.offset + mdat.size);
@@ -538,14 +585,14 @@
                 out.set(afterMdat, ow);
 
                 setProgress(80);
-                log('> Recalculating offsets...', 'dim');
+                log('> Stage 3: Multi-pass offset recalculation + mdat assembly...', 'purple');
 
-                // ── Patch stco/co64 offsets ──
+                // Patch all stco/co64 entries
                 const mdatShift = (newMdatOff + 8) - mdat.offset;
                 const outBoxes = parseBoxes(out, newMoovOff, newMoovOff + newMoov.length);
                 const outMoov = findBox(outBoxes, 'moov');
-                // Patch ALL stco/co64 in all tracks
                 const allTraks = outMoov.children.filter(b => b.type === 'trak');
+                const videoStcoBox = findDeep(outMoov, 'stco') || findDeep(outMoov, 'co64');
                 for (const trak of allTraks) {
                     const tStco = findDeep(trak, 'stco') || findDeep(trak, 'co64');
                     if (!tStco) continue;
@@ -558,8 +605,8 @@
                         if (old >= mdat.offset) { old += mdatShift; if (is64) w64(out, eOff, old);
                             else w32(out, eOff, old); }
                     }
-                    // If this is the video track's stco, fill the fake chunk entries
-                    if (tStco.offset === (findDeep(outMoov, 'stco') || findDeep(outMoov, 'co64'))?.offset) {
+                    // Fill fake chunk entries in video stco
+                    if (tStco.offset === videoStcoBox?.offset) {
                         const spc = Math.ceil(nFake / fakeChunks);
                         for (let i = 0; i < fakeChunks; i++) {
                             const idx = stcoCount + i;
@@ -572,59 +619,96 @@
                 }
 
                 setProgress(95);
-                log('> ✓ AST Injection complete — ' + nFake + ' fake samples · ' + (totalSize / 1024 / 1024).toFixed(
-                    1) + ' MB', 'green');
+                log('> ✓ AST Injection complete (' + (totalSize / 1024 / 1024).toFixed(1) + ' MB) — ' + nFake +
+                    ' fake samples.', 'green');
                 return out;
             }
 
             // ═══════════════════════════════════════
-            //  MAIN
+            //  MAIN PIPELINE
             // ═══════════════════════════════════════
             async function runPipeline() {
-                if (!selectedFile) return;
-                btnOptimize.disabled = true;
-                btnOptimize.classList.add('hidden');
+                if (!selectedFile || pipelineRunning) return;
+                pipelineRunning = true;
+                pipelinePaused = false;
+                pauseFlag = false;
+                cancelFlag = false;
+                finalBuffer = null;
+                faststartBuffer = null;
+                updateButtons();
+                clearLog();
                 showProgress(true);
                 setProgress(0);
-                clearLog();
+
                 log('> Initializing: ' + selectedFile.name, 'cyan');
                 log('> Reading binary stream...', 'dim');
-                log('> Starting Poulfyy AST Pipeline (v8.7)', 'purple');
-                log('> AST: Mode -> Faststart + Real mdat Injection', 'cyan');
 
                 let inputBuf;
                 try {
                     const ab = await selectedFile.arrayBuffer();
                     inputBuf = new Uint8Array(ab);
                     originalBuffer = new Uint8Array(inputBuf);
-                    log('> Input file read — ' + formatBytes(inputBuf.length), 'dim');
+                    log('> WASM: Input file read — ' + formatBytes(inputBuf.length), 'dim');
                 } catch (err) {
                     log('> Failed to read file: ' + err.message, 'red');
-                    showProgress(false);
+                    pipelineRunning = false;
                     updateButtons();
                     return;
                 }
-                setProgress(5);
 
-                // Stage 1
-                let fsBuf;
-                try {
-                    fsBuf = faststart(inputBuf);
-                    log('> Stage 1 complete.', 'green');
-                } catch (err) {
-                    log('> Faststart error: ' + err.message + ' — continuing.', 'amber');
-                    fsBuf = inputBuf;
+                // Load FFmpeg
+                const ffmpegOk = await loadFFmpeg();
+                if (cancelFlag) { pipelineRunning = false;
+                    updateButtons(); return; }
+                if (!ffmpegOk) {
+                    // FFmpeg not available — deliver original
+                    log('> Delivering original file (FFmpeg unavailable).', 'amber');
+                    finalBuffer = originalBuffer;
+                    const base = originalFileName.replace(/\.(mp4|mov)$/i, '');
+                    finalFileName = base + '_original.mp4';
+                    setProgress(100);
+                    pipelineRunning = false;
+                    updateButtons();
+                    btnDownload.classList.remove('hidden');
+                    toast('⚠ Delivering original file');
+                    return;
                 }
-                setProgress(20);
 
-                // Stage 2+3
+                // Stage 1: FFmpeg Faststart
+                log('> Starting Poulfyy AST Pipeline (v9.0)...', 'purple');
+                log('> AST: Mode -> FFmpeg Faststart + Binary Chunk Shifting', 'cyan');
+                try {
+                    faststartBuffer = await ffmpegFaststart(inputBuf);
+                } catch (err) {
+                    log('> Faststart failed: ' + err.message + ' — using original.', 'amber');
+                    faststartBuffer = inputBuf;
+                }
+                if (cancelFlag) { pipelineRunning = false;
+                    updateButtons(); return; }
+                if (pauseFlag) {
+                    pipelinePaused = true;
+                    updateButtons();
+                    log('> ⏸ Paused after Stage 1. Press Resume.', 'amber');
+                    await waitForResume();
+                    if (cancelFlag) { pipelineRunning = false;
+                        updateButtons(); return; }
+                    pipelinePaused = false;
+                    updateButtons();
+                    log('> ▶ Resuming...', 'cyan');
+                }
+                setProgress(28);
+
+                // Stage 2+3: Binary AST Injection
                 let outBuf = null;
                 try {
-                    outBuf = injectAndRebuild(fsBuf, inputBuf.length);
+                    outBuf = injectAndRebuild(faststartBuffer, inputBuf.length);
                 } catch (err) {
                     log('> AST Injection failed: ' + err.message, 'red');
-                    log('> Delivering original file untouched.', 'amber');
+                    log('> Falling back to faststart-only output (still optimized, no injection).', 'amber');
+                    outBuf = null;
                 }
+                if (cancelFlag) { pipelineRunning = false;
+                    updateButtons(); return; }
 
                 if (outBuf && outBuf.length > 0) {
                     finalBuffer = outBuf;
@@ -634,19 +718,42 @@
                     log('> OPTIMIZATION COMPLETE', 'green');
                     toast('✅ Optimization complete!');
                 } else {
-                    finalBuffer = originalBuffer;
+                    // Fallback to faststart output
+                    finalBuffer = faststartBuffer || originalBuffer;
                     const base = originalFileName.replace(/\.(mp4|mov)$/i, '');
-                    finalFileName = base + '_original.mp4';
-                    log('> Delivering original file (passthrough fallback).', 'amber');
-                    toast('⚠ Delivering original file');
+                    finalFileName = base + '_faststart.mp4';
+                    log('> Delivering faststart output (quality preserved).', 'amber');
+                    toast('⚠ Faststart only — still optimized');
                 }
+
                 setProgress(100);
-                showProgress(false);
+                pipelineRunning = false;
                 updateButtons();
                 btnDownload.classList.remove('hidden');
             }
 
+            function waitForResume() {
+                return new Promise(resolve => {
+                    const check = () => { if (!pipelinePaused || cancelFlag) resolve();
+                        else setTimeout(check, 200); };
+                    check();
+                });
+            }
+
             btnOptimize.addEventListener('click', runPipeline);
+            btnPause.addEventListener('click', () => {
+                if (pipelineRunning && !pipelinePaused) {
+                    pauseFlag = true;
+                    log('> ⏸ Pause requested...', 'amber');
+                    btnPause.textContent = '⏳ Pausing...';
+                    btnPause.disabled = true;
+                } else if (pipelinePaused) {
+                    pipelinePaused = false;
+                    pauseFlag = false;
+                    updateButtons();
+                    log('> ▶ Resuming...', 'cyan');
+                }
+            });
             btnDownload.addEventListener('click', () => {
                 if (!finalBuffer) return;
                 const blob = new Blob([finalBuffer], { type: 'video/mp4' });
@@ -661,10 +768,21 @@
                 log('> Download started: ' + (finalFileName || 'optimized.mp4'), 'green');
                 toast('⬇ Downloading...');
             });
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && pipelineRunning) {
+                    cancelFlag = true;
+                    pipelineRunning = false;
+                    pipelinePaused = false;
+                    updateButtons();
+                    log('> ⏹ Cancelled (Escape).', 'red');
+                    toast('Cancelled');
+                }
+            });
 
             updateButtons();
-            log('> Poulfyy AST Engine v8.7 ready.', 'dim');
+            log('> Poulfyy AST Engine v9.0 ready — FFmpeg + Binary Patcher.', 'dim');
             log('> Drop an MP4/MOV file or click to browse.', 'dim');
+            log('> If FFmpeg fails, serve this file via a local web server.', 'dim');
         })();
     </script>
 </body>
